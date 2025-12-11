@@ -1,0 +1,50 @@
+{
+    "name": "creabyia/crypto-payments",
+    "description": "Package Laravel complet pour gérer les paiements en Bitcoin et Ethereum",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "CreabyIA",
+            "email": "support@creabyia.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/database": "^10.0|^11.0",
+        "illuminate/http": "^10.0|^11.0",
+        "illuminate/queue": "^10.0|^11.0",
+        "illuminate/events": "^10.0|^11.0",
+        "illuminate/console": "^10.0|^11.0",
+        "illuminate/validation": "^10.0|^11.0",
+        "illuminate/routing": "^10.0|^11.0",
+        "illuminate/contracts": "^10.0|^11.0",
+        "sc0vu/web3.php": "^0.3"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0",
+        "phpunit/phpunit": "^10.0",
+        "mockery/mockery": "^1.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "CreabyIA\\CryptoPayments\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CreabyIA\\CryptoPayments\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "CreabyIA\\CryptoPayments\\CryptoPaymentsServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
+
