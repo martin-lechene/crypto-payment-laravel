@@ -1,6 +1,6 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Exceptions;
+namespace MartinLechene\CryptoPayments\Exceptions;
 
 class ExchangeRateException extends CryptoPaymentException {}
 

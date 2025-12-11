@@ -1,11 +1,11 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Services;
+namespace MartinLechene\CryptoPayments\Services;
 
-use CreabyIA\CryptoPayments\Models\CryptoPayment;
-use CreabyIA\CryptoPayments\Models\WebhookEvent;
-use CreabyIA\CryptoPayments\Models\PaymentWebhookEndpoint;
-use CreabyIA\CryptoPayments\Jobs\SendWebhookEvent;
+use MartinLechene\CryptoPayments\Models\CryptoPayment;
+use MartinLechene\CryptoPayments\Models\WebhookEvent;
+use MartinLechene\CryptoPayments\Models\PaymentWebhookEndpoint;
+use MartinLechene\CryptoPayments\Jobs\SendWebhookEvent;
 use Illuminate\Support\Facades\Queue;
 
 class WebhookManager

@@ -1,6 +1,6 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Http\Resources;
+namespace MartinLechene\CryptoPayments\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,7 +19,7 @@ class PaymentResource extends JsonResource
             'transaction_hash' => $this->transaction_hash,
             'status' => $this->status,
             'status_label' => $this->getAttribute('status') ? 
-                \CreabyIA\CryptoPayments\Models\CryptoPayment::STATUSES[$this->status] ?? $this->status 
+                \MartinLechene\CryptoPayments\Models\CryptoPayment::STATUSES[$this->status] ?? $this->status 
                 : null,
             'confirmations' => $this->confirmations,
             'required_confirmations' => $this->required_confirmations,

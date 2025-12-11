@@ -1,11 +1,11 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Services;
+namespace MartinLechene\CryptoPayments\Services;
 
-use CreabyIA\CryptoPayments\Models\CryptoPayment;
-use CreabyIA\CryptoPayments\Models\CryptoAddress;
-use CreabyIA\CryptoPayments\Models\BlockchainTransaction;
-use CreabyIA\CryptoPayments\Exceptions\PaymentException;
+use MartinLechene\CryptoPayments\Models\CryptoPayment;
+use MartinLechene\CryptoPayments\Models\CryptoAddress;
+use MartinLechene\CryptoPayments\Models\BlockchainTransaction;
+use MartinLechene\CryptoPayments\Exceptions\PaymentException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

@@ -1,6 +1,6 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Http\Resources;
+namespace MartinLechene\CryptoPayments\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 

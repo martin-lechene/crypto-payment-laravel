@@ -1,9 +1,9 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Http\Controllers;
+namespace MartinLechene\CryptoPayments\Http\Controllers;
 
-use CreabyIA\CryptoPayments\Models\CryptoAddress;
-use CreabyIA\CryptoPayments\Http\Resources\AddressResource;
+use MartinLechene\CryptoPayments\Models\CryptoAddress;
+use MartinLechene\CryptoPayments\Http\Resources\AddressResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

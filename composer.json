@@ -1,12 +1,12 @@
 {
-    "name": "creabyia/crypto-payments",
+    "name": "martin-lechene/crypto-payments",
     "description": "Package Laravel complet pour gérer les paiements en Bitcoin et Ethereum",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
-            "name": "CreabyIA",
-            "email": "support@creabyia.com"
+            "name": "Martin L",
+            "email": "martin@lechene.be"
         }
     ],
     "require": {
@@ -29,18 +29,18 @@
     },
     "autoload": {
         "psr-4": {
-            "CreabyIA\\CryptoPayments\\": "src/"
+            "MartinLechene\\CryptoPayments\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "CreabyIA\\CryptoPayments\\Tests\\": "tests/"
+            "MartinLechene\\CryptoPayments\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "CreabyIA\\CryptoPayments\\CryptoPaymentsServiceProvider"
+                "MartinLechene\\CryptoPayments\\CryptoPaymentsServiceProvider"
             ]
         }
     },

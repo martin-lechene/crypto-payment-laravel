@@ -1,11 +1,11 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Http\Controllers;
+namespace MartinLechene\CryptoPayments\Http\Controllers;
 
-use CreabyIA\CryptoPayments\Models\PaymentWebhookEndpoint;
-use CreabyIA\CryptoPayments\Models\WebhookEvent;
-use CreabyIA\CryptoPayments\Http\Requests\CreateWebhookRequest;
-use CreabyIA\CryptoPayments\Jobs\SendWebhookEvent;
+use MartinLechene\CryptoPayments\Models\PaymentWebhookEndpoint;
+use MartinLechene\CryptoPayments\Models\WebhookEvent;
+use MartinLechene\CryptoPayments\Http\Requests\CreateWebhookRequest;
+use MartinLechene\CryptoPayments\Jobs\SendWebhookEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;

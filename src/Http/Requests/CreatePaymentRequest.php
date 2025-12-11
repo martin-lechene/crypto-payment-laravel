@@ -1,6 +1,6 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Http\Requests;
+namespace MartinLechene\CryptoPayments\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 

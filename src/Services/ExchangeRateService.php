@@ -1,12 +1,12 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Services;
+namespace MartinLechene\CryptoPayments\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use CreabyIA\CryptoPayments\Models\ExchangeRate;
-use CreabyIA\CryptoPayments\Exceptions\ExchangeRateException;
+use MartinLechene\CryptoPayments\Models\ExchangeRate;
+use MartinLechene\CryptoPayments\Exceptions\ExchangeRateException;
 
 class ExchangeRateService
 {

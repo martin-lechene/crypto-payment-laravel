@@ -1,11 +1,11 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Http\Controllers;
+namespace MartinLechene\CryptoPayments\Http\Controllers;
 
-use CreabyIA\CryptoPayments\Models\CryptoPayment;
-use CreabyIA\CryptoPayments\Services\PaymentManager;
-use CreabyIA\CryptoPayments\Http\Requests\CreatePaymentRequest;
-use CreabyIA\CryptoPayments\Http\Resources\PaymentResource;
+use MartinLechene\CryptoPayments\Models\CryptoPayment;
+use MartinLechene\CryptoPayments\Services\PaymentManager;
+use MartinLechene\CryptoPayments\Http\Requests\CreatePaymentRequest;
+use MartinLechene\CryptoPayments\Http\Resources\PaymentResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

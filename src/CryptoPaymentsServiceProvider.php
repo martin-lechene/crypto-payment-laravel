@@ -1,10 +1,10 @@
 <?php
 
-namespace CreabyIA\CryptoPayments;
+namespace MartinLechene\CryptoPayments;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Console\Scheduling\Schedule;
-use CreabyIA\CryptoPayments\Services\{
+use MartinLechene\CryptoPayments\Services\{
     BitcoinService,
     EthereumService,
     PaymentManager,
@@ -12,7 +12,7 @@ use CreabyIA\CryptoPayments\Services\{
     WebhookManager,
     EncryptionService,
 };
-use CreabyIA\CryptoPayments\Jobs\{
+use MartinLechene\CryptoPayments\Jobs\{
     CheckPaymentConfirmations,
     RefreshExchangeRates,
 };

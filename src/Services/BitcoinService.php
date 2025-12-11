@@ -1,10 +1,10 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Services;
+namespace MartinLechene\CryptoPayments\Services;
 
 use Illuminate\Support\Facades\Http;
-use CreabyIA\CryptoPayments\Exceptions\BlockchainException;
-use CreabyIA\CryptoPayments\Exceptions\InvalidAddressException;
+use MartinLechene\CryptoPayments\Exceptions\BlockchainException;
+use MartinLechene\CryptoPayments\Exceptions\InvalidAddressException;
 
 class BitcoinService
 {

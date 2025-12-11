@@ -1,11 +1,11 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Console\Commands;
+namespace MartinLechene\CryptoPayments\Console\Commands;
 
 use Illuminate\Console\Command;
-use CreabyIA\CryptoPayments\Services\BitcoinService;
-use CreabyIA\CryptoPayments\Services\EthereumService;
-use CreabyIA\CryptoPayments\Models\CryptoAddress;
+use MartinLechene\CryptoPayments\Services\BitcoinService;
+use MartinLechene\CryptoPayments\Services\EthereumService;
+use MartinLechene\CryptoPayments\Models\CryptoAddress;
 
 class GenerateAddresses extends Command
 {

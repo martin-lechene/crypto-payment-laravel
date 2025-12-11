@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use CreabyIA\CryptoPayments\Http\Controllers\{
+use MartinLechene\CryptoPayments\Http\Controllers\{
     PaymentController,
     AddressController,
     WebhookController,

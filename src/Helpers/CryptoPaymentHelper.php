@@ -1,8 +1,8 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Helpers;
+namespace MartinLechene\CryptoPayments\Helpers;
 
-use CreabyIA\CryptoPayments\Models\CryptoPayment;
+use MartinLechene\CryptoPayments\Models\CryptoPayment;
 
 class CryptoPaymentHelper
 {

@@ -1,9 +1,9 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Jobs;
+namespace MartinLechene\CryptoPayments\Jobs;
 
-use CreabyIA\CryptoPayments\Models\CryptoPayment;
-use CreabyIA\CryptoPayments\Services\PaymentManager;
+use MartinLechene\CryptoPayments\Models\CryptoPayment;
+use MartinLechene\CryptoPayments\Services\PaymentManager;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

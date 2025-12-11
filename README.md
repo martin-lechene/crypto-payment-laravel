@@ -19,7 +19,7 @@ Package complet pour gérer les paiements en Bitcoin et Ethereum dans vos applic
 ### Via Composer
 
 ```bash
-composer require creabyia/crypto-payments
+composer require martin-lechene/crypto-payments
 ```
 
 ### Configuration
@@ -72,7 +72,7 @@ php artisan migrate
 ### Créer un paiement
 
 ```php
-use CreabyIA\CryptoPayments\Services\PaymentManager;
+use MartinLechene\CryptoPayments\Services\PaymentManager;
 
 $paymentManager = app(PaymentManager::class);
 

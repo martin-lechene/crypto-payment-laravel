@@ -1,6 +1,6 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Services;
+namespace MartinLechene\CryptoPayments\Services;
 
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;

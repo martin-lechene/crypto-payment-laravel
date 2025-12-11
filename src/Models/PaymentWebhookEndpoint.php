@@ -1,6 +1,6 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Models;
+namespace MartinLechene\CryptoPayments\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;

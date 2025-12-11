@@ -1,11 +1,11 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Services;
+namespace MartinLechene\CryptoPayments\Services;
 
 use Web3\Web3;
 use Web3\Providers\HttpProvider;
 use Web3\RequestManagers\HttpRequestManager;
-use CreabyIA\CryptoPayments\Exceptions\BlockchainException;
+use MartinLechene\CryptoPayments\Exceptions\BlockchainException;
 
 class EthereumService
 {

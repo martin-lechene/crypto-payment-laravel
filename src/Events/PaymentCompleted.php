@@ -1,8 +1,8 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Events;
+namespace MartinLechene\CryptoPayments\Events;
 
-use CreabyIA\CryptoPayments\Models\CryptoPayment;
+use MartinLechene\CryptoPayments\Models\CryptoPayment;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;

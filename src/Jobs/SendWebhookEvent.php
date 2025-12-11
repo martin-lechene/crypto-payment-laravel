@@ -1,9 +1,9 @@
 <?php
 
-namespace CreabyIA\CryptoPayments\Jobs;
+namespace MartinLechene\CryptoPayments\Jobs;
 
-use CreabyIA\CryptoPayments\Models\WebhookEvent;
-use CreabyIA\CryptoPayments\Models\PaymentWebhookEndpoint;
+use MartinLechene\CryptoPayments\Models\WebhookEvent;
+use MartinLechene\CryptoPayments\Models\PaymentWebhookEndpoint;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
