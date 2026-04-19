@@ -24,7 +24,7 @@
     "require-dev": {
         "mockery/mockery": "^1.6",
         "orchestra/testbench": "^8.0|^9.0|^10.0",
-        "phpunit/phpunit": "^10.0|^11.0"
+        "phpunit/phpunit": "^12.5.22"
     },
     "suggest": {
         "sc0vu/web3.php": "Required for Ethereum RPC support. Install via: composer require sc0vu/web3.php:dev-master"
