@@ -12,13 +12,14 @@ return [
                 'rpc_user' => env('BTC_TESTNET_USER', 'bitcoin'),
                 'rpc_password' => env('BTC_TESTNET_PASSWORD', 'password'),
                 'rpc_timeout' => 30,
+                'verify_ssl' => env('BTC_TESTNET_VERIFY_SSL', true),
                 'address_derivation' => 'bip44', // bip44, bip49, bip84
                 'master_seed' => env('BTC_MASTER_SEED'),
             ],
             'ethereum' => [
                 'enabled' => true,
                 'rpc_url' => env('ETH_TESTNET_RPC', 'http://localhost:8545'),
-                'chain_id' => 5, // Goerli
+                'chain_id' => 11155111, // Sepolia
                 'rpc_timeout' => 30,
                 'contract_abi' => [],
             ],
@@ -30,6 +31,7 @@ return [
                 'rpc_user' => env('BTC_MAINNET_USER'),
                 'rpc_password' => env('BTC_MAINNET_PASSWORD'),
                 'rpc_timeout' => 30,
+                'verify_ssl' => env('BTC_MAINNET_VERIFY_SSL', true),
             ],
             'ethereum' => [
                 'enabled' => env('ETH_MAINNET_ENABLED', false),

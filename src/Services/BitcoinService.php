@@ -13,6 +13,7 @@ class BitcoinService
     protected string $rpcPassword;
     protected int $requiredConfirmations;
     protected int $timeout;
+    protected bool $verifySsl;
     protected array $config;
     
     public function __construct(array $config)
@@ -22,6 +23,7 @@ class BitcoinService
         $this->rpcUser = $config['rpc_user'];
         $this->rpcPassword = $config['rpc_password'];
         $this->timeout = $config['rpc_timeout'] ?? 30;
+        $this->verifySsl = $config['verify_ssl'] ?? true;
         $this->requiredConfirmations = config('crypto-payments.confirmation_blocks.bitcoin', 3);
     }
     
@@ -149,10 +151,14 @@ class BitcoinService
         ];
         
         try {
-            $response = Http::withBasicAuth($this->rpcUser, $this->rpcPassword)
-                ->timeout($this->timeout)
-                ->withoutVerifying()
-                ->post($this->rpcUrl, $payload);
+            $request = Http::withBasicAuth($this->rpcUser, $this->rpcPassword)
+                ->timeout($this->timeout);
+
+            if (!$this->verifySsl) {
+                $request = $request->withoutVerifying();
+            }
+
+            $response = $request->post($this->rpcUrl, $payload);
             
             return $response->json();
         } catch (\Exception $e) {
