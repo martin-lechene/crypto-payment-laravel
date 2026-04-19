@@ -67,7 +67,8 @@
 | Incoming transaction detection | ⚠️ Stub | `findTransaction()` always returns `null`. You must integrate a blockchain indexer (e.g. [Blockstream API](https://blockstream.info/api/), [Etherscan](https://etherscan.io/apis)) before going live. |
 | ETH transaction sending | ⚠️ Not implemented | `EthereumService::sendTransaction()` throws intentionally; private key management must be implemented by the consumer. |
 | BIP44 hierarchical addresses | ⚠️ Partial | Falls back to `getnewaddress` — add [bitwasp/bitcoin](https://github.com/Bit-Wasp/bitcoin-php) for full BIP44/49/84 support. |
-| Test coverage | ⚠️ Minimal | The `tests/` directory is empty; contributions welcome. |
+| `sc0vu/web3.php` (Ethereum library) | ⚠️ Optional | Moved to `suggest` — unmaintained, requires `php ^7.1` on Packagist. Install manually: `composer require sc0vu/web3.php:dev-master`. Without it, ETH regex validation works but RPC calls throw. |
+| Test coverage | ⚠️ Minimal | Unit tests cover config, `BitcoinService`, and the service provider. Integration tests (real node) are out of scope. |
 
 ---
 
@@ -291,8 +292,13 @@ src/
 ```bash
 composer test
 # or
-./vendor/bin/phpunit
+./vendor/bin/phpunit --no-coverage
 ```
+
+The test suite covers:
+- Config file correctness (Sepolia chain_id, SSL defaults)
+- `BitcoinService` SSL toggle + RPC error handling
+- `ServiceProvider` bindings
 
 ---
 
@@ -348,7 +354,8 @@ MIT — see [LICENSE](LICENSE) for details.
 | Détection des transactions entrantes | ⚠️ Stub | `findTransaction()` retourne toujours `null`. Intégrez un indexeur blockchain ([Blockstream API](https://blockstream.info/api/), [Etherscan](https://etherscan.io/apis)) avant la production. |
 | Envoi de transactions ETH | ⚠️ Non implémenté | `EthereumService::sendTransaction()` lève une exception intentionnellement — la gestion des clés privées est à la charge du consommateur. |
 | Adresses hiérarchiques BIP44 | ⚠️ Partiel | Se rabat sur `getnewaddress` — ajoutez [bitwasp/bitcoin](https://github.com/Bit-Wasp/bitcoin-php) pour le BIP44/49/84 complet. |
-| Couverture de tests | ⚠️ Minimale | Le dossier `tests/` est vide ; les contributions sont bienvenues. |
+| `sc0vu/web3.php` (bibliothèque Ethereum) | ⚠️ Optionnel | Déplacé dans `suggest` — non maintenu, requiert `php ^7.1` sur Packagist. Installez manuellement : `composer require sc0vu/web3.php:dev-master`. Sans lui, la validation regex ETH fonctionne mais les appels RPC lèvent une exception. |
+| Couverture de tests | ⚠️ Partielle | Tests unitaires couvrant la config, `BitcoinService` et le service provider. Les tests d'intégration (nœud réel) sont hors périmètre. |
 
 ---
 

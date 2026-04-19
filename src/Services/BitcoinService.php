@@ -159,8 +159,13 @@ class BitcoinService
             }
 
             $response = $request->post($this->rpcUrl, $payload);
-            
-            return $response->json();
+
+            $json = $response->json();
+            if (!is_array($json)) {
+                throw new BlockchainException('Réponse RPC invalide (HTTP ' . $response->status() . ')');
+            }
+
+            return $json;
         } catch (\Exception $e) {
             throw new BlockchainException('Erreur RPC Bitcoin: ' . $e->getMessage());
         }

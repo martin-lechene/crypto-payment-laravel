@@ -2,124 +2,135 @@
 
 namespace MartinLechene\CryptoPayments\Services;
 
-use Web3\Web3;
-use Web3\Providers\HttpProvider;
-use Web3\RequestManagers\HttpRequestManager;
 use MartinLechene\CryptoPayments\Exceptions\BlockchainException;
 
 class EthereumService
 {
-    protected Web3 $web3;
+    /** @var object|null Web3 instance (null when sc0vu/web3.php is not installed) */
+    protected ?object $web3 = null;
     protected int $chainId;
     protected int $requiredConfirmations;
     protected string $rpcUrl;
     protected array $config;
-    
+
     public function __construct(array $config)
     {
         $this->config = $config;
         $this->rpcUrl = $config['rpc_url'];
         $this->chainId = $config['chain_id'] ?? 1;
-        
-        try {
-            $this->web3 = new Web3(
-                new HttpProvider(
-                    new HttpRequestManager($this->rpcUrl, $config['rpc_timeout'] ?? 30)
-                )
-            );
-        } catch (\Exception $e) {
-            throw new BlockchainException('Impossible de se connecter à Ethereum: ' . $e->getMessage());
+
+        if (class_exists(\Web3\Web3::class)) {
+            try {
+                $this->web3 = new \Web3\Web3(
+                    new \Web3\Providers\HttpProvider(
+                        new \Web3\RequestManagers\HttpRequestManager($this->rpcUrl, $config['rpc_timeout'] ?? 30)
+                    )
+                );
+            } catch (\Exception $e) {
+                throw new BlockchainException('Impossible de se connecter à Ethereum: ' . $e->getMessage());
+            }
         }
-        
+
         $this->requiredConfirmations = config('crypto-payments.confirmation_blocks.ethereum', 12);
     }
-    
+
+    protected function requireWeb3(): void
+    {
+        if ($this->web3 === null) {
+            throw new BlockchainException(
+                'sc0vu/web3.php is required for Ethereum support. ' .
+                'Install it with: composer require sc0vu/web3.php:dev-master'
+            );
+        }
+    }
+
     public function generateAddress(): array
     {
+        $this->requireWeb3();
         try {
             $account = [];
-            
             $this->web3->personal->newAccount('', function ($err, $result) use (&$account) {
                 if ($err) {
                     throw new BlockchainException('Erreur création compte: ' . $err->getMessage());
                 }
                 $account = ['address' => $result];
             });
-            
             return $account;
         } catch (\Exception $e) {
             throw new BlockchainException('Impossible de générer l\'adresse: ' . $e->getMessage());
         }
     }
-    
+
     public function validateAddress(string $address): bool
     {
         return preg_match('/^0x[a-fA-F0-9]{40}$/', $address) === 1;
     }
-    
+
     public function getBalance(string $address): string
     {
+        $this->requireWeb3();
         try {
             $balance = '';
-            
             $this->web3->eth->getBalance($address, function ($err, $result) use (&$balance) {
                 if ($err) {
                     throw new BlockchainException('Erreur balance: ' . $err->getMessage());
                 }
                 $balance = $this->web3->fromWei($result, 'ether');
             });
-            
             return $balance;
         } catch (\Exception $e) {
             throw new BlockchainException('Impossible de récupérer le solde: ' . $e->getMessage());
         }
     }
-    
+
     public function getTransaction(string $txHash): array
     {
+        if ($this->web3 === null) {
+            return [];
+        }
         try {
             $tx = [];
-            
             $this->web3->eth->getTransactionByHash($txHash, function ($err, $result) use (&$tx) {
                 if ($err) {
                     throw new BlockchainException('Transaction non trouvée');
                 }
-                $tx = (array)$result;
+                $tx = (array) $result;
             });
-            
             return $tx;
         } catch (\Exception $e) {
             return [];
         }
     }
-    
+
     public function getTransactionReceipt(string $txHash): array
     {
+        if ($this->web3 === null) {
+            return [];
+        }
         try {
             $receipt = [];
-            
             $this->web3->eth->getTransactionReceipt($txHash, function ($err, $result) use (&$receipt) {
                 if ($err) {
                     throw new BlockchainException('Receipt non trouvé');
                 }
-                $receipt = (array)$result;
+                $receipt = (array) $result;
             });
-            
             return $receipt;
         } catch (\Exception $e) {
             return [];
         }
     }
-    
+
     public function getConfirmations(string $txHash): int
     {
+        if ($this->web3 === null) {
+            return 0;
+        }
         try {
             $receipt = $this->getTransactionReceipt($txHash);
-            
             if (empty($receipt)) {
                 return 0;
             }
-            
             $blockNumber = 0;
             $this->web3->eth->blockNumber(function ($err, $result) use (&$blockNumber) {
                 if ($err) {
@@ -127,22 +138,21 @@ class EthereumService
                 }
                 $blockNumber = intval($result);
             });
-            
             $txBlockNumber = intval($receipt['blockNumber'] ?? 0);
             return max(0, $blockNumber - $txBlockNumber);
         } catch (\Exception $e) {
             return 0;
         }
     }
-    
+
     public function estimateGas(string $from, string $to, string $amount): string
     {
+        $this->requireWeb3();
         try {
             $gasEstimate = '';
-            
             $this->web3->eth->estimateGas([
-                'from' => $from,
-                'to' => $to,
+                'from'  => $from,
+                'to'    => $to,
                 'value' => $this->web3->toWei($amount, 'ether'),
             ], function ($err, $result) use (&$gasEstimate) {
                 if ($err) {
@@ -150,46 +160,37 @@ class EthereumService
                 }
                 $gasEstimate = $result;
             });
-            
             return $gasEstimate;
         } catch (\Exception $e) {
             throw new BlockchainException('Impossible d\'estimer le gas: ' . $e->getMessage());
         }
     }
-    
+
     public function getGasPrice(): string
     {
+        $this->requireWeb3();
         try {
             $gasPrice = '';
-            
             $this->web3->eth->gasPrice(function ($err, $result) use (&$gasPrice) {
                 if ($err) {
                     throw new BlockchainException('Erreur gas price: ' . $err->getMessage());
                 }
                 $gasPrice = $this->web3->fromWei($result, 'gwei');
             });
-            
             return $gasPrice;
         } catch (\Exception $e) {
             throw new BlockchainException('Impossible de récupérer le gas price: ' . $e->getMessage());
         }
     }
-    
+
     public function sendTransaction(
         string $from,
         string $to,
         string $amount,
         array $options = []
     ): string {
-        try {
-            $gasPrice = $options['gasPrice'] ?? $this->getGasPrice();
-            $gas = $options['gas'] ?? $this->estimateGas($from, $to, $amount);
-            
-            // À implémenter avec la gestion des clés privées sécurisée
-            throw new BlockchainException('Envoi de transaction non implémenté');
-        } catch (\Exception $e) {
-            throw new BlockchainException('Erreur envoi transaction: ' . $e->getMessage());
-        }
+        // Private key management must be implemented by the consumer.
+        throw new BlockchainException('Envoi de transaction non implémenté');
     }
 }
 
