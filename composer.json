@@ -10,22 +10,24 @@
         }
     ],
     "require": {
-        "php": "^8.1",
-        "illuminate/support": "^10.0|^11.0",
-        "illuminate/database": "^10.0|^11.0",
-        "illuminate/http": "^10.0|^11.0",
-        "illuminate/queue": "^10.0|^11.0",
-        "illuminate/events": "^10.0|^11.0",
-        "illuminate/console": "^10.0|^11.0",
-        "illuminate/validation": "^10.0|^11.0",
-        "illuminate/routing": "^10.0|^11.0",
-        "illuminate/contracts": "^10.0|^11.0",
-        "sc0vu/web3.php": "^0.3"
+        "php": "^8.2",
+        "illuminate/console": "^10.0|^11.0|^12.0",
+        "illuminate/contracts": "^10.0|^11.0|^12.0",
+        "illuminate/database": "^10.0|^11.0|^12.0",
+        "illuminate/events": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0",
+        "illuminate/queue": "^10.0|^11.0|^12.0",
+        "illuminate/routing": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/validation": "^10.0|^11.0|^12.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^8.0|^9.0",
-        "phpunit/phpunit": "^10.0",
-        "mockery/mockery": "^1.5"
+        "mockery/mockery": "^1.6",
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^12.5.22"
+    },
+    "suggest": {
+        "sc0vu/web3.php": "Required for Ethereum RPC support. Install via: composer require sc0vu/web3.php:dev-master"
     },
     "autoload": {
         "psr-4": {
@@ -44,7 +46,15 @@
             ]
         }
     },
+    "config": {
+        "platform": {
+            "php": "8.3"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit --colors=always"
+    },
     "minimum-stability": "dev",
     "prefer-stable": true
 }
-
