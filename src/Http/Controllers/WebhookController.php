@@ -2,13 +2,13 @@
 
 namespace MartinLechene\CryptoPayments\Http\Controllers;
 
-use MartinLechene\CryptoPayments\Models\PaymentWebhookEndpoint;
-use MartinLechene\CryptoPayments\Models\WebhookEvent;
-use MartinLechene\CryptoPayments\Http\Requests\CreateWebhookRequest;
-use MartinLechene\CryptoPayments\Jobs\SendWebhookEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;
+use MartinLechene\CryptoPayments\Http\Requests\CreateWebhookRequest;
+use MartinLechene\CryptoPayments\Jobs\SendWebhookEvent;
+use MartinLechene\CryptoPayments\Models\PaymentWebhookEndpoint;
+use MartinLechene\CryptoPayments\Models\WebhookEvent;
 
 class WebhookController
 {
@@ -22,44 +22,44 @@ class WebhookController
             'is_active' => true,
             'description' => $request->input('description'),
         ]);
-        
+
         return response()->json([
             'success' => true,
             'data' => $endpoint,
         ], 201);
     }
-    
+
     public function list(Request $request): JsonResponse
     {
         $endpoints = PaymentWebhookEndpoint::where('merchant_id', $request->input('merchant_id'))
             ->paginate($request->input('per_page', 20));
-        
+
         return response()->json([
             'success' => true,
             'data' => $endpoints,
         ]);
     }
-    
+
     public function update(PaymentWebhookEndpoint $endpoint, Request $request): JsonResponse
     {
         $endpoint->update($request->only(['url', 'events', 'description', 'is_active']));
-        
+
         return response()->json([
             'success' => true,
             'data' => $endpoint,
         ]);
     }
-    
+
     public function delete(PaymentWebhookEndpoint $endpoint): JsonResponse
     {
         $endpoint->delete();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Endpoint supprimé',
         ]);
     }
-    
+
     public function testEvent(PaymentWebhookEndpoint $endpoint): JsonResponse
     {
         // Dispatcher un test webhook
@@ -76,11 +76,10 @@ class WebhookController
                 $endpoint
             )
         );
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Test webhook envoyé',
         ]);
     }
 }
-

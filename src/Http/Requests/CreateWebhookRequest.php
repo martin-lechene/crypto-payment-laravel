@@ -17,4 +17,3 @@ class CreateWebhookRequest extends FormRequest
         ];
     }
 }
-

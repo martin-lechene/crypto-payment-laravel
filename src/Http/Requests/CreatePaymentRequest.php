@@ -23,4 +23,3 @@ class CreatePaymentRequest extends FormRequest
         ];
     }
 }
-

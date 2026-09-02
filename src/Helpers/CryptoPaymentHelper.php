@@ -10,12 +10,12 @@ class CryptoPaymentHelper
     {
         return CryptoPayment::STATUSES[$status] ?? $status;
     }
-    
+
     public static function formatAmount(float $amount, int $decimals = 8): string
     {
         return number_format($amount, $decimals, '.', '');
     }
-    
+
     public static function getStatusColor(string $status): string
     {
         return match ($status) {
@@ -30,4 +30,3 @@ class CryptoPaymentHelper
         };
     }
 }
-

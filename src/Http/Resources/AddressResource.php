@@ -21,4 +21,3 @@ class AddressResource extends JsonResource
         ];
     }
 }
-

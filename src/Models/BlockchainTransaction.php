@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BlockchainTransaction extends Model
 {
     protected $table = 'blockchain_transactions';
-    
+
     protected $fillable = [
         'payment_id',
         'tx_hash',
@@ -26,7 +26,7 @@ class BlockchainTransaction extends Model
         'confirmed_at',
         'raw_data',
     ];
-    
+
     protected $casts = [
         'amount' => 'decimal:8',
         'gas_used' => 'integer',
@@ -36,20 +36,19 @@ class BlockchainTransaction extends Model
         'confirmed_at' => 'datetime',
         'raw_data' => 'array',
     ];
-    
+
     public function payment(): BelongsTo
     {
         return $this->belongsTo(CryptoPayment::class, 'payment_id');
     }
-    
+
     public function scopeConfirmed($query)
     {
         return $query->where('status', 'confirmed');
     }
-    
+
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
     }
 }
-

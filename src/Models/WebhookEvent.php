@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WebhookEvent extends Model
 {
     protected $table = 'webhook_events';
-    
+
     protected $fillable = [
         'payment_id',
         'event_type',
@@ -22,7 +22,7 @@ class WebhookEvent extends Model
         'completed_at',
         'failed_at',
     ];
-    
+
     protected $casts = [
         'payload' => 'array',
         'response_body' => 'array',
@@ -32,7 +32,7 @@ class WebhookEvent extends Model
         'completed_at' => 'datetime',
         'failed_at' => 'datetime',
     ];
-    
+
     const EVENT_TYPES = [
         'payment_created',
         'payment_confirming',
@@ -41,20 +41,19 @@ class WebhookEvent extends Model
         'payment_failed',
         'payment_expired',
     ];
-    
+
     public function payment(): BelongsTo
     {
         return $this->belongsTo(CryptoPayment::class);
     }
-    
+
     public function scopePending($query)
     {
         return $query->whereNull('completed_at')->whereNull('failed_at');
     }
-    
+
     public function scopeReadyForRetry($query)
     {
         return $query->where('next_retry_at', '<=', now())->pending();
     }
 }
-

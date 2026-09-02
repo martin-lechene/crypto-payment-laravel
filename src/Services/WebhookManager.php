@@ -2,30 +2,30 @@
 
 namespace MartinLechene\CryptoPayments\Services;
 
-use MartinLechene\CryptoPayments\Models\CryptoPayment;
-use MartinLechene\CryptoPayments\Models\WebhookEvent;
-use MartinLechene\CryptoPayments\Models\PaymentWebhookEndpoint;
-use MartinLechene\CryptoPayments\Jobs\SendWebhookEvent;
 use Illuminate\Support\Facades\Queue;
+use MartinLechene\CryptoPayments\Jobs\SendWebhookEvent;
+use MartinLechene\CryptoPayments\Models\CryptoPayment;
+use MartinLechene\CryptoPayments\Models\PaymentWebhookEndpoint;
+use MartinLechene\CryptoPayments\Models\WebhookEvent;
 
 class WebhookManager
 {
     public function trigger(CryptoPayment $payment, string $eventType): void
     {
-        if (!config('crypto-payments.webhooks.enabled')) {
+        if (! config('crypto-payments.webhooks.enabled')) {
             return;
         }
-        
+
         // Récupérer les endpoints actifs
         $endpoints = PaymentWebhookEndpoint::active()
             ->where('merchant_id', $payment->merchant_id)
             ->get();
-        
+
         foreach ($endpoints as $endpoint) {
-            if (!$endpoint->supportsEvent($eventType)) {
+            if (! $endpoint->supportsEvent($eventType)) {
                 continue;
             }
-            
+
             // Créer l'événement webhook
             $event = WebhookEvent::create([
                 'payment_id' => $payment->id,
@@ -35,12 +35,12 @@ class WebhookManager
                 'attempt' => 1,
                 'max_attempts' => config('crypto-payments.webhooks.retry_attempts', 3),
             ]);
-            
+
             // Dispatcher le job
             Queue::push(new SendWebhookEvent($event, $endpoint));
         }
     }
-    
+
     protected function buildPayload(CryptoPayment $payment, string $eventType): array
     {
         return [
@@ -65,4 +65,3 @@ class WebhookManager
         ];
     }
 }
-

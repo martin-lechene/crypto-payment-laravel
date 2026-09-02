@@ -3,6 +3,7 @@
 namespace MartinLechene\CryptoPayments\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use MartinLechene\CryptoPayments\Models\CryptoPayment;
 
 class PaymentResource extends JsonResource
 {
@@ -18,8 +19,8 @@ class PaymentResource extends JsonResource
             'wallet_address' => $this->wallet_address,
             'transaction_hash' => $this->transaction_hash,
             'status' => $this->status,
-            'status_label' => $this->getAttribute('status') ? 
-                \MartinLechene\CryptoPayments\Models\CryptoPayment::STATUSES[$this->status] ?? $this->status 
+            'status_label' => $this->getAttribute('status') ?
+                CryptoPayment::STATUSES[$this->status] ?? $this->status
                 : null,
             'confirmations' => $this->confirmations,
             'required_confirmations' => $this->required_confirmations,
@@ -37,4 +38,3 @@ class PaymentResource extends JsonResource
         ];
     }
 }
-

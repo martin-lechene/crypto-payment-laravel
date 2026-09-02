@@ -2,55 +2,53 @@
 
 namespace MartinLechene\CryptoPayments;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Console\Scheduling\Schedule;
-use MartinLechene\CryptoPayments\Services\{
-    BitcoinService,
-    EthereumService,
-    PaymentManager,
-    ExchangeRateService,
-    WebhookManager,
-    EncryptionService,
-};
-use MartinLechene\CryptoPayments\Jobs\{
-    CheckPaymentConfirmations,
-    RefreshExchangeRates,
-};
+use Illuminate\Support\ServiceProvider;
+use MartinLechene\CryptoPayments\Jobs\CheckPaymentConfirmations;
+use MartinLechene\CryptoPayments\Jobs\RefreshExchangeRates;
+use MartinLechene\CryptoPayments\Services\BitcoinService;
+use MartinLechene\CryptoPayments\Services\EncryptionService;
+use MartinLechene\CryptoPayments\Services\EthereumService;
+use MartinLechene\CryptoPayments\Services\ExchangeRateService;
+use MartinLechene\CryptoPayments\Services\PaymentManager;
+use MartinLechene\CryptoPayments\Services\WebhookManager;
 
 class CryptoPaymentsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/crypto-payments.php',
+            __DIR__.'/../config/crypto-payments.php',
             'crypto-payments'
         );
-        
+
         // Services
         $this->app->singleton(BitcoinService::class, function ($app) {
             $network = config('crypto-payments.default_network', 'testnet');
             $config = config("crypto-payments.networks.{$network}.bitcoin");
+
             return new BitcoinService($config);
         });
-        
+
         $this->app->singleton(EthereumService::class, function ($app) {
             $network = config('crypto-payments.default_network', 'testnet');
             $config = config("crypto-payments.networks.{$network}.ethereum");
+
             return new EthereumService($config);
         });
-        
+
         $this->app->singleton(ExchangeRateService::class, function ($app) {
-            return new ExchangeRateService();
+            return new ExchangeRateService;
         });
-        
+
         $this->app->singleton(WebhookManager::class, function ($app) {
-            return new WebhookManager();
+            return new WebhookManager;
         });
-        
+
         $this->app->singleton(EncryptionService::class, function ($app) {
-            return new EncryptionService();
+            return new EncryptionService;
         });
-        
+
         $this->app->singleton(PaymentManager::class, function ($app) {
             return new PaymentManager(
                 $app->make(BitcoinService::class),
@@ -61,31 +59,30 @@ class CryptoPaymentsServiceProvider extends ServiceProvider
             );
         });
     }
-    
+
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-        
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
         $this->publishes([
-            __DIR__ . '/../config/crypto-payments.php' => config_path('crypto-payments.php'),
+            __DIR__.'/../config/crypto-payments.php' => config_path('crypto-payments.php'),
         ], 'crypto-payments-config');
-        
+
         $this->publishes([
-            __DIR__ . '/../database/migrations' => database_path('migrations'),
+            __DIR__.'/../database/migrations' => database_path('migrations'),
         ], 'crypto-payments-migrations');
-        
+
         // Enregistrer les routes
-        $this->loadRoutesFrom(__DIR__ . '/../routes/crypto-payments.php');
-        
+        $this->loadRoutesFrom(__DIR__.'/../routes/crypto-payments.php');
+
         // Scheduler
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->job(CheckPaymentConfirmations::class)
                 ->everyMinute()
                 ->onOneServer();
-            
+
             $schedule->job(RefreshExchangeRates::class)
                 ->everyFiveMinutes();
         });
     }
 }
-

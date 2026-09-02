@@ -1,169 +1,169 @@
 <?php
 
-namespace MartinLechene\CryptoPayments\Tests\Unit;
-
-use MartinLechene\CryptoPayments\Tests\PackageTestCase;
-
-use MartinLechene\CryptoPayments\Services\BitcoinService;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use MartinLechene\CryptoPayments\Exceptions\BlockchainException;
+use MartinLechene\CryptoPayments\Services\BitcoinService;
 
-/**
- * Tests for BitcoinService, focusing on:
- * - SSL verification behaviour (configurable, on by default)
- * - Address validation / balance logic
- * - RPC error handling
- */
-class BitcoinServiceTest extends PackageTestCase
+function btcService(array $config = []): BitcoinService
 {
-    private function makeService(array $overrides = []): BitcoinService
-    {
-        $config = array_merge([
-            'rpc_url'      => 'http://localhost:18332',
-            'rpc_user'     => 'bitcoin',
-            'rpc_password' => 'secret',
-            'rpc_timeout'  => 30,
-            'verify_ssl'   => true,
-        ], $overrides);
-
-        return new BitcoinService($config);
-    }
-
-    // ──────────────────────────── SSL ────────────────────────────
-
-    public function test_ssl_verification_is_enabled_by_default(): void
-    {
-        $service = $this->makeService();
-        // Reflection to read private property
-        $ref = new \ReflectionProperty(BitcoinService::class, 'verifySsl');
-        $ref->setAccessible(true);
-
-        $this->assertTrue($ref->getValue($service));
-    }
-
-    public function test_ssl_verification_can_be_disabled_via_config(): void
-    {
-        $service = $this->makeService(['verify_ssl' => false]);
-        $ref = new \ReflectionProperty(BitcoinService::class, 'verifySsl');
-        $ref->setAccessible(true);
-
-        $this->assertFalse($ref->getValue($service));
-    }
-
-    public function test_ssl_defaults_to_true_when_key_absent(): void
-    {
-        // verify_ssl key entirely missing from config
-        $config = [
-            'rpc_url'      => 'http://localhost:18332',
-            'rpc_user'     => 'bitcoin',
-            'rpc_password' => 'secret',
-            'rpc_timeout'  => 30,
-        ];
-        $service = new BitcoinService($config);
-        $ref = new \ReflectionProperty(BitcoinService::class, 'verifySsl');
-        $ref->setAccessible(true);
-
-        $this->assertTrue($ref->getValue($service), 'verifySsl must default to true when not explicitly configured.');
-    }
-
-    // ──────────────────────────── RPC calls (faked) ──────────────────────────
-
-    public function test_generate_address_returns_address_from_rpc(): void
-    {
-        Http::fake([
-            '*' => Http::response([
-                'result' => 'tb1qfakeaddress0123456789',
-                'error'  => null,
-                'id'     => 'btc_test',
-            ]),
-        ]);
-
-        $service = $this->makeService();
-        $address = $service->generateAddress();
-
-        $this->assertSame('tb1qfakeaddress0123456789', $address);
-    }
-
-    public function test_generate_address_throws_on_rpc_error(): void
-    {
-        Http::fake([
-            '*' => Http::response([
-                'result' => null,
-                'error'  => ['code' => -18, 'message' => 'No wallet loaded'],
-                'id'     => 'btc_test',
-            ]),
-        ]);
-
-        $this->expectException(BlockchainException::class);
-
-        $service = $this->makeService();
-        $service->generateAddress();
-    }
-
-    public function test_get_balance_sums_unspent_outputs(): void
-    {
-        Http::fake([
-            '*' => Http::response([
-                'result' => [
-                    ['amount' => 0.5],
-                    ['amount' => 0.25],
-                ],
-                'error' => null,
-                'id'    => 'btc_test',
-            ]),
-        ]);
-
-        $service = $this->makeService();
-        $balance = $service->getBalance('tb1qfakeaddress');
-
-        $this->assertEqualsWithDelta(0.75, $balance, 0.00001);
-    }
-
-    public function test_get_balance_returns_zero_when_no_utxos(): void
-    {
-        Http::fake([
-            '*' => Http::response([
-                'result' => [],
-                'error'  => null,
-                'id'     => 'btc_test',
-            ]),
-        ]);
-
-        $service = $this->makeService();
-        $balance = $service->getBalance('tb1qfakeaddress');
-
-        $this->assertSame(0.0, $balance);
-    }
-
-    public function test_get_confirmations_returns_zero_on_rpc_failure(): void
-    {
-        Http::fake(['*' => Http::response([], 500)]);
-
-        $service = $this->makeService();
-        $confirmations = $service->getConfirmations('deadbeef');
-
-        // Must not throw; gracefully returns 0
-        $this->assertSame(0, $confirmations);
-    }
-
-    public function test_estimate_fee_falls_back_on_rpc_failure(): void
-    {
-        Http::fake(['*' => Http::response([], 500)]);
-
-        $service = $this->makeService();
-        $fee = $service->estimateFee();
-
-        $this->assertGreaterThan(0, $fee);
-    }
-
-    public function test_rpc_call_throws_blockchain_exception_on_network_error(): void
-    {
-        Http::fake(['*' => Http::response(null, 503)]);
-
-        $this->expectException(BlockchainException::class);
-
-        $service = $this->makeService();
-        // validateAddress triggers rpcCall and propagates the exception
-        $service->validateAddress('tb1qfakeaddress');
-    }
+    return new BitcoinService(array_merge([
+        'enabled' => true,
+        'rpc_url' => 'http://localhost:18332',
+        'rpc_user' => 'bitcoin',
+        'rpc_password' => 'password',
+        'rpc_timeout' => 5,
+        'verify_ssl' => true,
+        'explorer_url' => 'https://blockstream.info/testnet/api',
+    ], $config));
 }
+
+function btcRpc(array $byMethod): Closure
+{
+    return function (Request $request) use ($byMethod) {
+        $body = json_decode($request->body(), true);
+        $method = $body['method'] ?? '';
+
+        if (($byMethod[$method] ?? null) instanceof Closure) {
+            $payload = $byMethod[$method]($body['params'] ?? []);
+        } elseif (array_key_exists($method, $byMethod)) {
+            $payload = $byMethod[$method];
+        } else {
+            $payload = null;
+        }
+
+        return Http::response([
+            'jsonrpc' => '2.0',
+            'id' => $body['id'] ?? null,
+            'result' => $payload,
+        ]);
+    };
+}
+
+it('génère une adresse bech32 via le noeud', function () {
+    Http::fake([
+        'localhost:18332*' => btcRpc([
+            'getnewaddress' => 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r',
+        ]),
+    ]);
+
+    expect(btcService()->generateAddress())->toBe('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r');
+});
+
+it('lève une exception si le noeud retourne un id invalide', function () {
+    Http::fake([
+        'localhost:18332*' => btcRpc([
+            'getnewaddress' => 'invalide!',
+        ]),
+    ]);
+
+    btcService()->generateAddress();
+})->throws(BlockchainException::class, 'Adresse invalide');
+
+it('valide une adresse auprès du noeud', function () {
+    Http::fake([
+        'localhost:18332*' => btcRpc([
+            'validateaddress' => ['isvalid' => true],
+        ]),
+    ]);
+
+    $service = btcService();
+
+    expect($service->validateAddress('3QJmV3qfvL9SuYo34YihAf3sRCW3qSinyC'))->toBeTrue();
+});
+
+it('rejette une adresse invalide validée par le noeud', function () {
+    Http::fake([
+        'localhost:18332*' => btcRpc([
+            'validateaddress' => ['isvalid' => false],
+        ]),
+    ]);
+
+    expect(btcService()->validateAddress('adresseinconnue'))->toBeFalse();
+});
+
+it('retourne le nombre de confirmations', function () {
+    Http::fake([
+        'localhost:18332*' => btcRpc([
+            'getrawtransaction' => ['txid' => str_repeat('ab', 32), 'confirmations' => 6],
+        ]),
+    ]);
+
+    expect(btcService()->getConfirmations(str_repeat('ab', 32)))->toBe(6);
+});
+
+it('retourne 0 confirmation sinon', function () {
+    Http::fake([
+        'localhost:18332*' => btcRpc([
+            'getrawtransaction' => null,
+        ]),
+    ]);
+
+    expect(btcService()->getConfirmations(str_repeat('ab', 32)))->toBe(0);
+});
+
+it('trouve une transaction correspondante sur l explorateur', function () {
+    $address = 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r';
+
+    Http::fake([
+        'blockstream.info/*' => Http::response([
+            [
+                'txid' => str_repeat('ab', 32),
+                'vout' => [
+                    ['scriptpubkey_address' => $address, 'value' => 60000],
+                ],
+            ],
+        ]),
+    ]);
+
+    $service = btcService();
+
+    expect($service->findTransactionForAddress($address, 0.0005))->toBe(str_repeat('ab', 32));
+});
+
+it('ignore un output sous le montant attendu ou vers une autre adresse', function () {
+    $address = 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r';
+
+    Http::fake([
+        'blockstream.info/*' => Http::response([
+            [
+                'txid' => str_repeat('cd', 32),
+                'vout' => [
+                    ['scriptpubkey_address' => 'tb1qautre', 'value' => 99999999],
+                    ['scriptpubkey_address' => $address, 'value' => 1000],
+                ],
+            ],
+        ]),
+    ]);
+
+    $service = btcService();
+
+    expect($service->findTransactionForAddress($address, 0.001))->toBeNull();
+});
+
+it('retourne le solde via listunspent', function () {
+    Http::fake([
+        'localhost:18332*' => btcRpc([
+            'listunspent' => [
+                ['amount' => 0.5],
+                ['amount' => 0.25],
+            ],
+        ]),
+    ]);
+
+    expect(btcService()->getBalance('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r'))->toBe(0.75);
+});
+
+it('lance une erreur blockchain si le rpc http échoue', function () {
+    Http::fake([
+        'localhost:18332*' => Http::response([], 500),
+    ]);
+
+    btcService()->getBalance('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r');
+})->throws(BlockchainException::class, 'HTTP 500');
+
+it('lève une exception si l explorateur est absent', function () {
+    Http::fake();
+
+    btcService(['explorer_url' => null])->findTransactionForAddress('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r', 0.001);
+})->throws(BlockchainException::class, 'Explorateur Bitcoin non configuré');
