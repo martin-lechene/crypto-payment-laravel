@@ -1,85 +1,109 @@
 <?php
 
+namespace MartinLechene\CryptoPayments\Tests\Unit;
+
+use InvalidArgumentException;
 use MartinLechene\CryptoPayments\Support\HexMath;
+use MartinLechene\CryptoPayments\Tests\TestCase;
 
-it('convertit hex vers decimal', function () {
-    expect(HexMath::hexToDec('0xa'))->toBe('10');
-    expect(HexMath::hexToDec('0x10'))->toBe('16');
-    expect(HexMath::hexToDec('0xff'))->toBe('255');
-    expect(HexMath::hexToDec('0xde0b6b3a7640000'))->toBe('1000000000000000000');
-    expect(HexMath::hexToDec('0x0'))->toBe('0');
-    expect(HexMath::hexToDec(''))->toBe('0');
-});
+class HexMathTest extends TestCase
+{
+    public function test_convertit_hex_vers_decimal(): void
+    {
+        $this->assertSame('10', HexMath::hexToDec('0xa'));
+        $this->assertSame('16', HexMath::hexToDec('0x10'));
+        $this->assertSame('255', HexMath::hexToDec('0xff'));
+        $this->assertSame('1000000000000000000', HexMath::hexToDec('0xde0b6b3a7640000'));
+        $this->assertSame('0', HexMath::hexToDec('0x0'));
+        $this->assertSame('0', HexMath::hexToDec(''));
+    }
 
-it('convertit decimal vers hex', function () {
-    expect(HexMath::decToHex('0'))->toBe('0x0');
-    expect(HexMath::decToHex('10'))->toBe('0xa');
-    expect(HexMath::decToHex('255'))->toBe('0xff');
-    expect(HexMath::decToHex('1000000000000000000'))->toBe('0xde0b6b3a7640000');
-    expect(HexMath::decToHex('21000'))->toBe('0x5208');
-});
+    public function test_convertit_decimal_vers_hex(): void
+    {
+        $this->assertSame('0x0', HexMath::decToHex('0'));
+        $this->assertSame('0xa', HexMath::decToHex('10'));
+        $this->assertSame('0xff', HexMath::decToHex('255'));
+        $this->assertSame('0xde0b6b3a7640000', HexMath::decToHex('1000000000000000000'));
+        $this->assertSame('0x5208', HexMath::decToHex('21000'));
+    }
 
-it('rejette les valeurs négatives en conversion dec→hex', function () {
-    HexMath::decToHex('-5');
-})->throws(InvalidArgumentException::class);
+    public function test_rejette_les_valeurs_negatives_en_conversion_dechex(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
 
-it('convertit wei vers ether', function () {
-    expect(HexMath::weiToEther('1000000000000000000'))->toBe('1');
-    expect(HexMath::weiToEther('50000000000000000'))->toBe('0.05');
-    expect(HexMath::weiToEther('1'))->toBe('0.000000000000000001');
-    expect(HexMath::weiToEther('0'))->toBe('0');
-    expect(HexMath::weiToEther('2500000000000000000'))->toBe('2.5');
-});
+        HexMath::decToHex('-5');
+    }
 
-it('convertit ether vers wei', function () {
-    expect(HexMath::etherToWei('1'))->toBe('1000000000000000000');
-    expect(HexMath::etherToWei('0.05'))->toBe('50000000000000000');
-    expect(HexMath::etherToWei('2.5'))->toBe('2500000000000000000');
-    expect(HexMath::etherToWei('0'))->toBe('0');
-    expect(HexMath::etherToWei('1.123456789'))->toBe('1123456789000000000');
-});
+    public function test_convertit_wei_vers_ether(): void
+    {
+        $this->assertSame('1', HexMath::weiToEther('1000000000000000000'));
+        $this->assertSame('0.05', HexMath::weiToEther('50000000000000000'));
+        $this->assertSame('0.000000000000000001', HexMath::weiToEther('1'));
+        $this->assertSame('0', HexMath::weiToEther('0'));
+        $this->assertSame('2.5', HexMath::weiToEther('2500000000000000000'));
+    }
 
-it('arrondit les fractions ether au-delà de 18 décimales', function () {
-    expect(HexMath::etherToWei('0.0000000000000000009'))->toBe('0');
-});
+    public function test_convertit_ether_vers_wei(): void
+    {
+        $this->assertSame('1000000000000000000', HexMath::etherToWei('1'));
+        $this->assertSame('50000000000000000', HexMath::etherToWei('0.05'));
+        $this->assertSame('2500000000000000000', HexMath::etherToWei('2.5'));
+        $this->assertSame('0', HexMath::etherToWei('0'));
+        $this->assertSame('1123456789000000000', HexMath::etherToWei('1.123456789'));
+    }
 
-it('compare les nombres décimaux comme chaînes exactes', function () {
-    expect(HexMath::compare('1000', '999'))->toBe(1);
-    expect(HexMath::compare('0', '5'))->toBe(-1);
-    expect(HexMath::compare('50000000000000000000', '50000000000000000000'))->toBe(0);
-    expect(HexMath::compare('-10', '2'))->toBe(-1);
-});
+    public function test_arrondit_les_fractions_ether_au_dela_de_18_decimales(): void
+    {
+        $this->assertSame('0', HexMath::etherToWei('0.0000000000000000009'));
+    }
 
-it('additionne et soustrait en précision arbitraire', function () {
-    expect(HexMath::add('99999999999999999999', '1'))->toBe('100000000000000000000');
-    expect(HexMath::sub('1000000000000000000', '999999999999999999'))->toBe('1');
-    expect(HexMath::add('-5', '3'))->toBe('-2');
-    expect(HexMath::sub('5', '5'))->toBe('0');
-});
+    public function test_compare_les_nombres_decimaux_comme_chaines_exactes(): void
+    {
+        $this->assertSame(1, HexMath::compare('1000', '999'));
+        $this->assertSame(-1, HexMath::compare('0', '5'));
+        $this->assertSame(0, HexMath::compare('50000000000000000000', '50000000000000000000'));
+        $this->assertSame(-1, HexMath::compare('-10', '2'));
+    }
 
-it('multiplie par un entier', function () {
-    expect(HexMath::multiplyByInt('12345', 16))->toBe('197520');
-    expect(HexMath::multiplyByInt('1000000000', 110))->toBe('110000000000');
-});
+    public function test_additionne_et_soustrait_en_precision_arbitraire(): void
+    {
+        $this->assertSame('100000000000000000000', HexMath::add('99999999999999999999', '1'));
+        $this->assertSame('1', HexMath::sub('1000000000000000000', '999999999999999999'));
+        $this->assertSame('-2', HexMath::add('-5', '3'));
+        $this->assertSame('0', HexMath::sub('5', '5'));
+    }
 
-it('multiplie par des puissances de dix', function () {
-    expect(HexMath::multiplyByPowerOfTen('1', 18))->toBe('1000000000000000000');
-    expect(HexMath::multiplyByPowerOfTen('123000', -2))->toBe('1230');
-    expect(HexMath::multiplyByPowerOfTen('100', -3))->toBe('0');
-});
+    public function test_multiplie_par_un_entier(): void
+    {
+        $this->assertSame('197520', HexMath::multiplyByInt('12345', 16));
+        $this->assertSame('110000000000', HexMath::multiplyByInt('1000000000', 110));
+    }
 
-it('divise par un entier', function () {
-    [$quotient, $remainder] = HexMath::divideByInt('21000', 16);
-    expect($quotient)->toBe('1312');
-    expect($remainder)->toBe(8);
-});
+    public function test_multiplie_par_des_puissances_de_dix(): void
+    {
+        $this->assertSame('1000000000000000000', HexMath::multiplyByPowerOfTen('1', 18));
+        $this->assertSame('1230', HexMath::multiplyByPowerOfTen('123000', -2));
+        $this->assertSame('0', HexMath::multiplyByPowerOfTen('100', -3));
+    }
 
-it('réjette la division par zéro', function () {
-    HexMath::divideByInt('1', 0);
-})->throws(InvalidArgumentException::class);
+    public function test_divise_par_un_entier(): void
+    {
+            [$quotient, $remainder] = HexMath::divideByInt('21000', 16);
+        $this->assertSame('1312', $quotient);
+        $this->assertSame(8, $remainder);
+    }
 
-it('convertit bitcoin vers satoshis', function () {
-    expect(HexMath::btcToSatoshi(0.001))->toBe(100000);
-    expect(HexMath::btcToSatoshi(0.0005))->toBe(50000);
-    expect(HexMath::btcToSatoshi(1.0))->toBe(100000000);
-});
+    public function test_rejette_la_division_par_zero(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        HexMath::divideByInt('1', 0);
+    }
+
+    public function test_convertit_bitcoin_vers_satoshis(): void
+    {
+        $this->assertSame(100000, HexMath::btcToSatoshi(0.001));
+        $this->assertSame(50000, HexMath::btcToSatoshi(0.0005));
+        $this->assertSame(100000000, HexMath::btcToSatoshi(1.0));
+    }
+}

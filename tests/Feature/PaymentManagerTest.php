@@ -1,5 +1,8 @@
 <?php
 
+namespace MartinLechene\CryptoPayments\Tests\Feature;
+
+use Closure;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use MartinLechene\CryptoPayments\Exceptions\PaymentException;
@@ -8,10 +11,10 @@ use MartinLechene\CryptoPayments\Models\CryptoAddress;
 use MartinLechene\CryptoPayments\Models\CryptoPayment;
 use MartinLechene\CryptoPayments\Models\ExchangeRate;
 use MartinLechene\CryptoPayments\Services\PaymentManager;
+use MartinLechene\CryptoPayments\Tests\TestCase;
 
 const PM_ADDRESS = 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r';
 const PM_TX = 'abababababababababababababababababababababababababababababababab';
-
 function pmBitcoinRpc(): Closure
 {
     return function (Request $request) {
@@ -35,12 +38,10 @@ function pmBitcoinRpc(): Closure
         return Http::response(['jsonrpc' => '2.0', 'id' => uniqid(), 'result' => $result]);
     };
 }
-
 function pmCoingecko(): Closure
 {
     return fn () => Http::response(['bitcoin' => ['usd' => 60000], 'ethereum' => ['usd' => 3000]]);
 }
-
 function pmExplorerWithPayment(): Closure
 {
     return fn () => Http::response([
@@ -53,162 +54,178 @@ function pmExplorerWithPayment(): Closure
     ]);
 }
 
-beforeEach(function () {
-    $this->pm = $this->app->make(PaymentManager::class);
-});
+class PaymentManagerTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
 
-it('crée une demande de paiement avec adresse et taux', function () {
-    Http::fake([
-        'api.coingecko.com/*' => pmCoingecko(),
-        'localhost:18332*' => pmBitcoinRpc(),
-    ]);
+        $this->pm = $this->app->make(PaymentManager::class);
+    }
 
-    $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD', [
-        'merchant_id' => 7,
-        'order_id' => 42,
-        'description' => 'Commande test',
-    ]);
+    public function test_cree_une_demande_de_paiement_avec_adresse_et_taux(): void
+    {
+            Http::fake([
+                'api.coingecko.com/*' => pmCoingecko(),
+                'localhost:18332*' => pmBitcoinRpc(),
+            ]);
 
-    expect($payment->currency)->toBe('BTC');
-    expect((float) $payment->amount_crypto)->toBe(0.0005);
-    expect($payment->wallet_address)->toBe(PM_ADDRESS);
-    expect($payment->status)->toBe(CryptoPayment::STATUS_PENDING);
-    expect($payment->merchant_id)->toBe(7);
-    expect($payment->order_id)->toBe(42);
-    expect($payment->required_confirmations)->toBe(3);
-    expect($payment->reference_code)->not->toBeNull()->not->toBeEmpty();
+            $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD', [
+                'merchant_id' => 7,
+                'order_id' => 42,
+                'description' => 'Commande test',
+            ]);
 
-    expect(CryptoPayment::count())->toBe(1);
-    expect(CryptoAddress::where('address', PM_ADDRESS)->exists())->toBeTrue();
-    expect(ExchangeRate::for('BTC', 'USD')->exists())->toBeTrue();
-});
+        $this->assertSame('BTC', $payment->currency);
+        $this->assertSame(0.0005, (float) $payment->amount_crypto);
+        $this->assertSame(PM_ADDRESS, $payment->wallet_address);
+        $this->assertSame(CryptoPayment::STATUS_PENDING, $payment->status);
+        $this->assertSame(7, $payment->merchant_id);
+        $this->assertSame(42, $payment->order_id);
+        $this->assertSame(3, $payment->required_confirmations);
+        $this->assertNotNull($payment->reference_code);
+            $this->assertNotEmpty($payment->reference_code);
 
-it('reporte la détection et la confirmation d une transaction', function () {
-    Http::fake([
-        'api.coingecko.com/*' => pmCoingecko(),
-        'localhost:18332*' => pmBitcoinRpc(),
-        'blockstream.info/*' => pmExplorerWithPayment(),
-    ]);
+        $this->assertSame(1, CryptoPayment::count());
+        $this->assertTrue(CryptoAddress::where('address', PM_ADDRESS)->exists());
+        $this->assertTrue(ExchangeRate::for('BTC', 'USD')->exists());
+    }
 
-    $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD');
+    public function test_reporte_la_detection_et_la_confirmation_d_une_transaction(): void
+    {
+            Http::fake([
+                'api.coingecko.com/*' => pmCoingecko(),
+                'localhost:18332*' => pmBitcoinRpc(),
+                'blockstream.info/*' => pmExplorerWithPayment(),
+            ]);
 
-    $this->pm->checkPaymentStatus($payment->refresh());
+            $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD');
 
-    $payment->refresh();
+            $this->pm->checkPaymentStatus($payment->refresh());
 
-    expect($payment->transaction_hash)->toBe(PM_TX);
-    expect($payment->confirmations)->toBe(6);
-    expect($payment->status)->toBe(CryptoPayment::STATUS_CONFIRMED);
+            $payment->refresh();
 
-    expect(BlockchainTransaction::where('tx_hash', PM_TX)->exists())->toBeTrue();
+        $this->assertSame(PM_TX, $payment->transaction_hash);
+        $this->assertSame(6, $payment->confirmations);
+        $this->assertSame(CryptoPayment::STATUS_CONFIRMED, $payment->status);
 
-    $record = BlockchainTransaction::where('tx_hash', PM_TX)->first();
-    expect($record->payment_id)->toBe($payment->id);
-    expect(strtolower($record->to_address))->toBe(PM_ADDRESS);
-});
+        $this->assertTrue(BlockchainTransaction::where('tx_hash', PM_TX)->exists());
 
-it('ne crée pas de doublon de transaction enregistrée', function () {
-    Http::fake([
-        'api.coingecko.com/*' => pmCoingecko(),
-        'localhost:18332*' => pmBitcoinRpc(),
-        'blockstream.info/*' => pmExplorerWithPayment(),
-    ]);
+            $record = BlockchainTransaction::where('tx_hash', PM_TX)->first();
+        $this->assertSame($payment->id, $record->payment_id);
+        $this->assertSame(PM_ADDRESS, strtolower($record->to_address));
+    }
 
-    $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD');
+    public function test_ne_cree_pas_de_doublon_de_transaction_enregistree(): void
+    {
+            Http::fake([
+                'api.coingecko.com/*' => pmCoingecko(),
+                'localhost:18332*' => pmBitcoinRpc(),
+                'blockstream.info/*' => pmExplorerWithPayment(),
+            ]);
 
-    $this->pm->checkPaymentStatus($payment->refresh());
-    $this->pm->checkPaymentStatus($payment->refresh());
+            $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD');
 
-    expect(BlockchainTransaction::where('tx_hash', PM_TX)->count())->toBe(1);
-});
+            $this->pm->checkPaymentStatus($payment->refresh());
+            $this->pm->checkPaymentStatus($payment->refresh());
 
-it('reste en attente tant qu aucune transaction n est détectée', function () {
-    Http::fake([
-        'api.coingecko.com/*' => pmCoingecko(),
-        'localhost:18332*' => pmBitcoinRpc(),
-        'blockstream.info/*' => Http::response([]),
-    ]);
+        $this->assertSame(1, BlockchainTransaction::where('tx_hash', PM_TX)->count());
+    }
 
-    $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD');
+    public function test_reste_en_attente_tant_qu_aucune_transaction_n_est_detectee(): void
+    {
+            Http::fake([
+                'api.coingecko.com/*' => pmCoingecko(),
+                'localhost:18332*' => pmBitcoinRpc(),
+                'blockstream.info/*' => Http::response([]),
+            ]);
 
-    $this->pm->checkPaymentStatus($payment->refresh());
+            $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD');
 
-    $payment->refresh();
+            $this->pm->checkPaymentStatus($payment->refresh());
 
-    expect($payment->transaction_hash)->toBeNull();
-    expect($payment->status)->toBe(CryptoPayment::STATUS_PENDING);
-});
+            $payment->refresh();
 
-it('expire un paiement en attente après son échéance', function () {
-    Http::fake([
-        'api.coingecko.com/*' => pmCoingecko(),
-        'localhost:18332*' => pmBitcoinRpc(),
-        'blockstream.info/*' => Http::response([]),
-    ]);
+        $this->assertNull($payment->transaction_hash);
+        $this->assertSame(CryptoPayment::STATUS_PENDING, $payment->status);
+    }
 
-    $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD');
+    public function test_expire_un_paiement_en_attente_apres_son_echeance(): void
+    {
+            Http::fake([
+                'api.coingecko.com/*' => pmCoingecko(),
+                'localhost:18332*' => pmBitcoinRpc(),
+                'blockstream.info/*' => Http::response([]),
+            ]);
 
-    $payment->update(['expires_at' => now()->subMinute()]);
+            $payment = $this->pm->createPaymentRequest('BTC', 30, 'USD');
 
-    $this->pm->checkPaymentStatus($payment->refresh());
+            $payment->update(['expires_at' => now()->subMinute()]);
 
-    expect($payment->refresh()->status)->toBe(CryptoPayment::STATUS_EXPIRED);
+            $this->pm->checkPaymentStatus($payment->refresh());
 
-    $this->pm->checkPaymentStatus($payment->refresh());
+        $this->assertSame(CryptoPayment::STATUS_EXPIRED, $payment->refresh()->status);
 
-    expect($payment->refresh()->status)->toBe(CryptoPayment::STATUS_EXPIRED);
-});
+            $this->pm->checkPaymentStatus($payment->refresh());
 
-it('rejette une devise non supportée', function () {
-    Http::fake();
+        $this->assertSame(CryptoPayment::STATUS_EXPIRED, $payment->refresh()->status);
+    }
 
-    $this->pm->createPaymentRequest('DOGE', 10, 'USD');
-})->throws(PaymentException::class);
+    public function test_rejette_une_devise_non_supportee(): void
+    {
+        $this->expectException(PaymentException::class);
 
-it('gère le flux Ethereum avec l explorateur', function () {
-    $ethAddress = '0x'.str_repeat('be', 20);
-    $ethTx = '0x'.str_repeat('ef', 32);
+        Http::fake();
 
-    Http::fake([
-        'api.coingecko.com/*' => pmCoingecko(),
-        'localhost:8545*' => function (Request $request) use ($ethAddress) {
-            $body = json_decode($request->body(), true);
-            $method = $body['method'] ?? '';
+        $this->pm->createPaymentRequest('DOGE', 10, 'USD');
+    }
 
-            $result = match ($method) {
-                'personal_newAccount' => $ethAddress,
-                'eth_getTransactionByHash' => [
-                    'from' => '0x'.str_repeat('aa', 20),
-                    'to' => $ethAddress,
-                    'value' => '0x6f05b59d3b20000',
-                    'blockNumber' => '0x10',
-                ],
-                'eth_getTransactionReceipt' => ['blockNumber' => '0x10'],
-                'eth_blockNumber' => '0x1c',
-                default => null,
-            };
+    public function test_gere_le_flux_ethereum_avec_l_explorateur(): void
+    {
+            $ethAddress = '0x'.str_repeat('be', 20);
+            $ethTx = '0x'.str_repeat('ef', 32);
 
-            return Http::response(['jsonrpc' => '2.0', 'id' => uniqid(), 'result' => $result]);
-        },
-        'api-sepolia.etherscan.io/*' => Http::response([
-            'status' => '1',
-            'message' => 'OK',
-            'result' => [
-                ['hash' => $ethTx, 'to' => $ethAddress, 'isError' => '0', 'value' => '500000000000000000'],
-            ],
-        ]),
-    ]);
+            Http::fake([
+                'api.coingecko.com/*' => pmCoingecko(),
+                'localhost:8545*' => function (Request $request) use ($ethAddress) {
+                    $body = json_decode($request->body(), true);
+                    $method = $body['method'] ?? '';
 
-    $payment = $this->pm->createPaymentRequest('ETH', 150, 'USD');
+                    $result = match ($method) {
+                        'personal_newAccount' => $ethAddress,
+                        'eth_getTransactionByHash' => [
+                            'from' => '0x'.str_repeat('aa', 20),
+                            'to' => $ethAddress,
+                            'value' => '0x6f05b59d3b20000',
+                            'blockNumber' => '0x10',
+                        ],
+                        'eth_getTransactionReceipt' => ['blockNumber' => '0x10'],
+                        'eth_blockNumber' => '0x1c',
+                        default => null,
+                    };
 
-    expect($payment->wallet_address)->toBe($ethAddress);
-    expect((float) $payment->amount_crypto)->toBe(0.05);
+                    return Http::response(['jsonrpc' => '2.0', 'id' => uniqid(), 'result' => $result]);
+                },
+                'api-sepolia.etherscan.io/*' => Http::response([
+                    'status' => '1',
+                    'message' => 'OK',
+                    'result' => [
+                        ['hash' => $ethTx, 'to' => $ethAddress, 'isError' => '0', 'value' => '500000000000000000'],
+                    ],
+                ]),
+            ]);
 
-    $this->pm->checkPaymentStatus($payment->refresh());
+            $payment = $this->pm->createPaymentRequest('ETH', 150, 'USD');
 
-    $payment->refresh();
+        $this->assertSame($ethAddress, $payment->wallet_address);
+        $this->assertSame(0.05, (float) $payment->amount_crypto);
 
-    expect($payment->transaction_hash)->toBe($ethTx);
-    expect($payment->confirmations)->toBe(12);
-    expect($payment->status)->toBe(CryptoPayment::STATUS_CONFIRMED);
-});
+            $this->pm->checkPaymentStatus($payment->refresh());
+
+            $payment->refresh();
+
+        $this->assertSame($ethTx, $payment->transaction_hash);
+        $this->assertSame(12, $payment->confirmations);
+        $this->assertSame(CryptoPayment::STATUS_CONFIRMED, $payment->status);
+    }
+}

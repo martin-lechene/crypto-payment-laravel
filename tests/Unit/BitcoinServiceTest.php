@@ -1,9 +1,13 @@
 <?php
 
+namespace MartinLechene\CryptoPayments\Tests\Unit;
+
+use Closure;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use MartinLechene\CryptoPayments\Exceptions\BlockchainException;
 use MartinLechene\CryptoPayments\Services\BitcoinService;
+use MartinLechene\CryptoPayments\Tests\TestCase;
 
 function btcService(array $config = []): BitcoinService
 {
@@ -17,7 +21,6 @@ function btcService(array $config = []): BitcoinService
         'explorer_url' => 'https://blockstream.info/testnet/api',
     ], $config));
 }
-
 function btcRpc(array $byMethod): Closure
 {
     return function (Request $request) use ($byMethod) {
@@ -40,130 +43,153 @@ function btcRpc(array $byMethod): Closure
     };
 }
 
-it('génère une adresse bech32 via le noeud', function () {
-    Http::fake([
-        'localhost:18332*' => btcRpc([
-            'getnewaddress' => 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r',
-        ]),
-    ]);
+class BitcoinServiceTest extends TestCase
+{
+    public function test_genere_une_adresse_bech32_via_le_noeud(): void
+    {
+            Http::fake([
+                'localhost:18332*' => btcRpc([
+                    'getnewaddress' => 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r',
+                ]),
+            ]);
 
-    expect(btcService()->generateAddress())->toBe('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r');
-});
+        $this->assertSame('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r', btcService()->generateAddress());
+    }
 
-it('lève une exception si le noeud retourne un id invalide', function () {
-    Http::fake([
-        'localhost:18332*' => btcRpc([
-            'getnewaddress' => 'invalide!',
-        ]),
-    ]);
+    public function test_leve_une_exception_si_le_noeud_retourne_un_id_invalide(): void
+    {
+        $this->expectException(BlockchainException::class);
+        $this->expectExceptionMessage('Adresse invalide');
 
-    btcService()->generateAddress();
-})->throws(BlockchainException::class, 'Adresse invalide');
+        Http::fake([
+            'localhost:18332*' => btcRpc([
+                'getnewaddress' => 'invalide!',
+            ]),
+        ]);
 
-it('valide une adresse auprès du noeud', function () {
-    Http::fake([
-        'localhost:18332*' => btcRpc([
-            'validateaddress' => ['isvalid' => true],
-        ]),
-    ]);
+        btcService()->generateAddress();
+    }
 
-    $service = btcService();
+    public function test_valide_une_adresse_aupres_du_noeud(): void
+    {
+            Http::fake([
+                'localhost:18332*' => btcRpc([
+                    'validateaddress' => ['isvalid' => true],
+                ]),
+            ]);
 
-    expect($service->validateAddress('3QJmV3qfvL9SuYo34YihAf3sRCW3qSinyC'))->toBeTrue();
-});
+            $service = btcService();
 
-it('rejette une adresse invalide validée par le noeud', function () {
-    Http::fake([
-        'localhost:18332*' => btcRpc([
-            'validateaddress' => ['isvalid' => false],
-        ]),
-    ]);
+        $this->assertTrue($service->validateAddress('3QJmV3qfvL9SuYo34YihAf3sRCW3qSinyC'));
+    }
 
-    expect(btcService()->validateAddress('adresseinconnue'))->toBeFalse();
-});
+    public function test_rejette_une_adresse_invalide_validee_par_le_noeud(): void
+    {
+            Http::fake([
+                'localhost:18332*' => btcRpc([
+                    'validateaddress' => ['isvalid' => false],
+                ]),
+            ]);
 
-it('retourne le nombre de confirmations', function () {
-    Http::fake([
-        'localhost:18332*' => btcRpc([
-            'getrawtransaction' => ['txid' => str_repeat('ab', 32), 'confirmations' => 6],
-        ]),
-    ]);
+        $this->assertFalse(btcService()->validateAddress('adresseinconnue'));
+    }
 
-    expect(btcService()->getConfirmations(str_repeat('ab', 32)))->toBe(6);
-});
+    public function test_retourne_le_nombre_de_confirmations(): void
+    {
+            Http::fake([
+                'localhost:18332*' => btcRpc([
+                    'getrawtransaction' => ['txid' => str_repeat('ab', 32), 'confirmations' => 6],
+                ]),
+            ]);
 
-it('retourne 0 confirmation sinon', function () {
-    Http::fake([
-        'localhost:18332*' => btcRpc([
-            'getrawtransaction' => null,
-        ]),
-    ]);
+        $this->assertSame(6, btcService()->getConfirmations(str_repeat('ab', 32)));
+    }
 
-    expect(btcService()->getConfirmations(str_repeat('ab', 32)))->toBe(0);
-});
+    public function test_retourne_0_confirmation_sinon(): void
+    {
+            Http::fake([
+                'localhost:18332*' => btcRpc([
+                    'getrawtransaction' => null,
+                ]),
+            ]);
 
-it('trouve une transaction correspondante sur l explorateur', function () {
-    $address = 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r';
+        $this->assertSame(0, btcService()->getConfirmations(str_repeat('ab', 32)));
+    }
 
-    Http::fake([
-        'blockstream.info/*' => Http::response([
-            [
-                'txid' => str_repeat('ab', 32),
-                'vout' => [
-                    ['scriptpubkey_address' => $address, 'value' => 60000],
-                ],
-            ],
-        ]),
-    ]);
+    public function test_trouve_une_transaction_correspondante_sur_l_explorateur(): void
+    {
+            $address = 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r';
 
-    $service = btcService();
+            Http::fake([
+                'blockstream.info/*' => Http::response([
+                    [
+                        'txid' => str_repeat('ab', 32),
+                        'vout' => [
+                            ['scriptpubkey_address' => $address, 'value' => 60000],
+                        ],
+                    ],
+                ]),
+            ]);
 
-    expect($service->findTransactionForAddress($address, 0.0005))->toBe(str_repeat('ab', 32));
-});
+            $service = btcService();
 
-it('ignore un output sous le montant attendu ou vers une autre adresse', function () {
-    $address = 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r';
+        $this->assertSame(str_repeat('ab', 32), $service->findTransactionForAddress($address, 0.0005));
+    }
 
-    Http::fake([
-        'blockstream.info/*' => Http::response([
-            [
-                'txid' => str_repeat('cd', 32),
-                'vout' => [
-                    ['scriptpubkey_address' => 'tb1qautre', 'value' => 99999999],
-                    ['scriptpubkey_address' => $address, 'value' => 1000],
-                ],
-            ],
-        ]),
-    ]);
+    public function test_ignore_un_output_sous_le_montant_attendu_ou_vers_une_autre_adresse(): void
+    {
+            $address = 'tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r';
 
-    $service = btcService();
+            Http::fake([
+                'blockstream.info/*' => Http::response([
+                    [
+                        'txid' => str_repeat('cd', 32),
+                        'vout' => [
+                            ['scriptpubkey_address' => 'tb1qautre', 'value' => 99999999],
+                            ['scriptpubkey_address' => $address, 'value' => 1000],
+                        ],
+                    ],
+                ]),
+            ]);
 
-    expect($service->findTransactionForAddress($address, 0.001))->toBeNull();
-});
+            $service = btcService();
 
-it('retourne le solde via listunspent', function () {
-    Http::fake([
-        'localhost:18332*' => btcRpc([
-            'listunspent' => [
-                ['amount' => 0.5],
-                ['amount' => 0.25],
-            ],
-        ]),
-    ]);
+        $this->assertNull($service->findTransactionForAddress($address, 0.001));
+    }
 
-    expect(btcService()->getBalance('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r'))->toBe(0.75);
-});
+    public function test_retourne_le_solde_via_listunspent(): void
+    {
+            Http::fake([
+                'localhost:18332*' => btcRpc([
+                    'listunspent' => [
+                        ['amount' => 0.5],
+                        ['amount' => 0.25],
+                    ],
+                ]),
+            ]);
 
-it('lance une erreur blockchain si le rpc http échoue', function () {
-    Http::fake([
-        'localhost:18332*' => Http::response([], 500),
-    ]);
+        $this->assertSame(0.75, btcService()->getBalance('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r'));
+    }
 
-    btcService()->getBalance('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r');
-})->throws(BlockchainException::class, 'HTTP 500');
+    public function test_lance_une_erreur_blockchain_si_le_rpc_http_echoue(): void
+    {
+        $this->expectException(BlockchainException::class);
+        $this->expectExceptionMessage('HTTP 500');
 
-it('lève une exception si l explorateur est absent', function () {
-    Http::fake();
+        Http::fake([
+            'localhost:18332*' => Http::response([], 500),
+        ]);
 
-    btcService(['explorer_url' => null])->findTransactionForAddress('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r', 0.001);
-})->throws(BlockchainException::class, 'Explorateur Bitcoin non configuré');
+        btcService()->getBalance('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r');
+    }
+
+    public function test_leve_une_exception_si_l_explorateur_est_absent(): void
+    {
+        $this->expectException(BlockchainException::class);
+        $this->expectExceptionMessage('Explorateur Bitcoin non configuré');
+
+        Http::fake();
+
+        btcService(['explorer_url' => null])->findTransactionForAddress('tb1q3zpw3rfw9w2a0y6yqf3a8k3r6j7h4q0kzw3s9r', 0.001);
+    }
+}
