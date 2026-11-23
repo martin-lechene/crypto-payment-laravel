@@ -7,9 +7,11 @@
 .DS_Store
 Thumbs.db
 .env
-.env.backup
+.env.*
+!.env.example
 .phpunit.result.cache
+.phpunit.cache/
+.pint.cache
 composer.lock
 coverage/
-.phpunit.cache
-
+build/

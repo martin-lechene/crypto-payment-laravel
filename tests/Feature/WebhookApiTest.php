@@ -11,46 +11,46 @@ class WebhookApiTest extends TestCase
 {
     public function test_cree_liste_met_a_jour_teste_et_supprime_un_endpoint_webhook_via_l_api(): void
     {
-            Http::fake([
-                'merchant.example/*' => Http::response(['ok' => true], 200),
-            ]);
+        Http::fake([
+            'merchant.example/*' => Http::response(['ok' => true], 200),
+        ]);
 
-            $response = $this->postJson('/api/crypto-payments/webhooks', [
-                'merchant_id' => 5,
-                'url' => 'https://merchant.example/hook',
-                'events' => ['payment_confirmed', 'payment_completed'],
-                'description' => 'Boutique principale',
-            ]);
+        $response = $this->postJson('/api/crypto-payments/webhooks', [
+            'merchant_id' => 5,
+            'url' => 'https://merchant.example/hook',
+            'events' => ['payment_confirmed', 'payment_completed'],
+            'description' => 'Boutique principale',
+        ]);
 
-            $response->assertStatus(201)->assertJsonPath('success', true);
+        $response->assertStatus(201)->assertJsonPath('success', true);
 
-            $data = $response->json('data');
+        $data = $response->json('data');
         $this->assertSame('https://merchant.example/hook', $data['url']);
         $this->assertContains('payment_confirmed', $data['events']);
         $this->assertTrue($data['is_active']);
         $this->assertNotNull($data['secret']);
 
-            $id = $data['id'];
+        $id = $data['id'];
         $this->assertNotNull(PaymentWebhookEndpoint::find($id));
 
-            $this->getJson('/api/crypto-payments/webhooks?merchant_id=5')
-                ->assertOk()
-                ->assertJsonCount(1, 'data.data');
+        $this->getJson('/api/crypto-payments/webhooks?merchant_id=5')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data');
 
-            $this->patchJson("/api/crypto-payments/webhooks/{$id}", [
-                'url' => 'https://merchant.example/hook-v2',
-                'is_active' => false,
-            ])->assertOk();
+        $this->patchJson("/api/crypto-payments/webhooks/{$id}", [
+            'url' => 'https://merchant.example/hook-v2',
+            'is_active' => false,
+        ])->assertOk();
 
-            $endpoint = PaymentWebhookEndpoint::find($id);
+        $endpoint = PaymentWebhookEndpoint::find($id);
         $this->assertSame('https://merchant.example/hook-v2', $endpoint->url);
         $this->assertFalse($endpoint->is_active);
 
-            $this->postJson("/api/crypto-payments/webhooks/{$id}/test")->assertOk();
+        $this->postJson("/api/crypto-payments/webhooks/{$id}/test")->assertOk();
 
         $this->assertSame(1, WebhookEvent::where('event_type', 'test')->count());
 
-            $this->deleteJson("/api/crypto-payments/webhooks/{$id}")->assertOk();
+        $this->deleteJson("/api/crypto-payments/webhooks/{$id}")->assertOk();
         $this->assertNull(PaymentWebhookEndpoint::find($id));
     }
 

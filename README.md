@@ -1,14 +1,16 @@
 # Crypto Payments for Laravel
 
 <p align="center">
-  <a href="https://packagist.org/packages/martin-lechene/crypto-payments"><img src="https://img.shields.io/packagist/v/martin-lechene/crypto-payments?style=flat-square" alt="Latest Version"></a>
-  <a href="https://packagist.org/packages/martin-lechene/crypto-payments"><img src="https://img.shields.io/packagist/dt/martin-lechene/crypto-payments?style=flat-square" alt="Total Downloads"></a>
-  <a href="https://packagist.org/packages/martin-lechene/crypto-payments"><img src="https://img.shields.io/packagist/l/martin-lechene/crypto-payments?style=flat-square" alt="License"></a>
-  <a href="https://packagist.org/packages/martin-lechene/crypto-payments"><img src="https://img.shields.io/packagist/php-v/martin-lechene/crypto-payments?style=flat-square" alt="PHP Version"></a>
+  <a href="https://github.com/martin-lechene/crypto-payment-laravel/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/martin-lechene/crypto-payment-laravel/tests.yml?branch=main&style=flat-square&label=tests" alt="Tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/martin-lechene/crypto-payment-laravel?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/badge/PHP-8.2%20%7C%208.3%20%7C%208.4-777BB4?style=flat-square&logo=php&logoColor=white" alt="PHP">
   <img src="https://img.shields.io/badge/Laravel-10%20%7C%2011%20%7C%2012-FF2D20?style=flat-square&logo=laravel" alt="Laravel">
+  <img src="https://img.shields.io/badge/status-beta-orange?style=flat-square" alt="Beta">
 </p>
 
-> A Laravel package to accept **Bitcoin** and **Ethereum** payments with exchange-rate conversion, webhook notifications, and a full audit trail.
+> A Laravel package to accept **Bitcoin** and **Ethereum** payments with exchange-rate conversion, webhook notifications, and an audit trail.
+>
+> **Beta, not yet on Packagist.** Read [Known Limitations](#known-limitations) before using it with real funds.
 >
 > 🇫🇷 [Voir la documentation en français](#documentation-française)
 
@@ -29,7 +31,8 @@
 - [Security](#security)
 - [Testing](#testing)
 - [Changelog](#changelog)
-- [License](#license)
+- [Contributing](#contributing)
+- [License and contact](#license-and-contact)
 
 ---
 
@@ -39,46 +42,54 @@
 |---|---|
 | PHP | ^8.2 |
 | Laravel | ^10.0 \| ^11.0 \| ^12.0 |
-| Bitcoin Core | ^25.0 (RPC enabled) |
-| Ethereum node | Any JSON-RPC compatible node (e.g. Geth, Infura) |
+| Bitcoin Core | RPC enabled (used for address generation and confirmations) |
+| Ethereum node | JSON-RPC node (e.g. Geth) for confirmations; address generation uses `personal_newAccount`, which hosted providers such as Infura do not expose |
+| Block explorers | An Esplora-compatible API (Bitcoin) and an Etherscan-compatible API (Ethereum) to detect incoming transactions |
 
 ---
 
 ## Features
 
-- ✅ Bitcoin & Ethereum support (testnet + mainnet)
-- ✅ Unique payment address generation per transaction
-- ✅ Blockchain confirmation tracking
-- ✅ Fiat ↔ crypto conversion via CoinGecko
-- ✅ Webhook system with HMAC-SHA256 signature and automatic retry
-- ✅ AES-256 encryption for sensitive data
-- ✅ Full audit trail
-- ✅ REST API (create / check / list payments)
-- ✅ Scheduled jobs for automatic payment verification
+- Bitcoin and Ethereum support (testnet and mainnet)
+- One payment address per payment request
+- Incoming transaction detection through the configured block explorer
+- Blockchain confirmation tracking
+- Fiat to crypto conversion via CoinGecko
+- Webhooks signed with HMAC-SHA256, with timestamp and automatic retry (exponential backoff)
+- Audit trail of payment status changes
+- REST API for payments, addresses and webhook endpoints
+- Scheduled jobs for automatic payment verification and exchange-rate refresh
 
 ---
 
 ## Known Limitations
 
-> **Please read before using in production.**
+> **Please read before using in production.** This package is in beta.
 
 | Area | Status | Notes |
 |---|---|---|
-| Incoming transaction detection | ⚠️ Stub | `findTransaction()` always returns `null`. You must integrate a blockchain indexer (e.g. [Blockstream API](https://blockstream.info/api/), [Etherscan](https://etherscan.io/apis)) before going live. |
-| ETH transaction sending | ⚠️ Not implemented | `EthereumService::sendTransaction()` throws intentionally; private key management must be implemented by the consumer. |
-| BIP44 hierarchical addresses | ⚠️ Partial | Falls back to `getnewaddress` — add [bitwasp/bitcoin](https://github.com/Bit-Wasp/bitcoin-php) for full BIP44/49/84 support. |
-| `sc0vu/web3.php` (Ethereum library) | ⚠️ Optional | Moved to `suggest` — unmaintained, requires `php ^7.1` on Packagist. Install manually: `composer require sc0vu/web3.php:dev-master`. Without it, ETH regex validation works but RPC calls throw. |
-| Test coverage | ⚠️ Minimal | Unit tests cover config, `BitcoinService`, and the service provider. Integration tests (real node) are out of scope. |
+| REST routes | ⚠️ No authentication | The bundled `/api/crypto-payments/*` routes are registered **without any auth or authorization middleware**, and endpoints are not scoped to a merchant. Do not expose them publicly as-is: restrict them at the web-server level, or do not rely on them and call `PaymentManager` from your own authenticated controllers. |
+| Webhook endpoint URLs | ⚠️ Not restricted | Any URL passing Laravel's `url` rule is accepted and called by your queue worker (no private-network / SSRF filtering). The signing secret is returned by the API in plain text. |
+| Sensitive-data encryption | ⚠️ Helper only | `EncryptionService` wraps Laravel's `Crypt`, but the package does not encrypt stored columns with it automatically. |
+| Transaction matching | ⚠️ Basic | Incoming payments are matched by address and by amount (>= expected) through the explorer; there is no partial-payment, over-payment or double-spend handling. |
+| Ethereum | ⚠️ Node-managed keys | Addresses come from `personal_newAccount` and `sendTransaction()` uses `eth_sendTransaction`, so the node must manage and unlock the accounts. Private-key management is left to you. |
+| BIP44 hierarchical addresses | ⚠️ Partial | Falls back to `getnewaddress`. Add [bitwasp/bitcoin](https://github.com/Bit-Wasp/bitcoin-php) for full BIP44/49/84 support. |
+| Tests | ⚠️ No real node | 79 tests with faked HTTP calls. Integration tests against a real node are out of scope. |
 
 ---
 
 ## Installation
 
+The package is **not published on Packagist yet**. Install it from the GitHub repository:
+
 ```bash
-composer require martin-lechene/crypto-payments
+composer config repositories.crypto-payments vcs https://github.com/martin-lechene/crypto-payment-laravel
+composer require martin-lechene/crypto-payments:dev-main
 ```
 
-### Publish config & migrations
+Once a stable tag exists, you will be able to use `composer require martin-lechene/crypto-payments`.
+
+The service provider is auto-discovered. Publish the config and migrations, then migrate:
 
 ```bash
 php artisan vendor:publish --tag=crypto-payments-config
@@ -90,36 +101,26 @@ php artisan migrate
 
 ## Configuration
 
-Copy `.env.example` to `.env` and fill in the values:
+The config file is `config/crypto-payments.php`. Add the variables you need to your `.env` (a full list is in [`.env.example`](.env.example)):
 
-```bash
-cp vendor/martin-lechene/crypto-payments/.env.example .env
-```
+| Variable | Default | Purpose |
+|---|---|---|
+| `CRYPTO_NETWORK` | `testnet` | `testnet` or `mainnet` |
+| `CRYPTO_DEFAULT_CURRENCY` | `BTC` | Default currency |
+| `BTC_TESTNET_RPC`, `BTC_TESTNET_USER`, `BTC_TESTNET_PASSWORD` | `http://localhost:18332`, `bitcoin`, `password` | Bitcoin testnet RPC |
+| `BTC_TESTNET_VERIFY_SSL` | `true` | TLS verification of the RPC endpoint |
+| `BTC_TESTNET_EXPLORER` | Blockstream testnet API | Explorer used to detect incoming transactions |
+| `BTC_MAINNET_ENABLED`, `BTC_MAINNET_RPC`, `BTC_MAINNET_USER`, `BTC_MAINNET_PASSWORD`, `BTC_MAINNET_VERIFY_SSL`, `BTC_MAINNET_EXPLORER` | disabled | Bitcoin mainnet |
+| `BTC_CONFIRMATIONS` | `3` | Confirmations required |
+| `ETH_TESTNET_RPC`, `ETH_TESTNET_VERIFY_SSL`, `ETH_TESTNET_EXPLORER`, `ETH_TESTNET_EXPLORER_KEY` | `http://localhost:8545` (Sepolia, chain id 11155111) | Ethereum testnet |
+| `ETH_MAINNET_ENABLED`, `ETH_MAINNET_RPC`, `ETH_MAINNET_VERIFY_SSL`, `ETH_MAINNET_EXPLORER`, `ETH_MAINNET_EXPLORER_KEY` | disabled | Ethereum mainnet |
+| `ETH_CONFIRMATIONS` | `12` | Confirmations required |
+| `EXCHANGE_RATES_PROVIDER` | `coingecko` | Exchange-rate provider |
+| `CRYPTO_SLACK_WEBHOOK` | empty | Optional monitoring webhook |
 
-### Key environment variables
+Other keys live only in the config file (publish it to change them): `fees`, `payment_timeouts` (pending 15 min, confirming 60 min), `exchange_rates.cache_duration`, `webhooks` (`enabled`, `timeout`, `retry_attempts`, `retry_delay`), `monitoring`, `supported_currencies`.
 
-```env
-# "testnet" or "mainnet"
-CRYPTO_NETWORK=testnet
-CRYPTO_DEFAULT_CURRENCY=BTC
-
-# Bitcoin Testnet
-BTC_TESTNET_RPC=http://localhost:18332
-BTC_TESTNET_USER=bitcoin
-BTC_TESTNET_PASSWORD=secret
-# Set to false only on private nodes with self-signed certs
-BTC_TESTNET_VERIFY_SSL=true
-BTC_CONFIRMATIONS=3
-
-# Ethereum Testnet (Sepolia, chain_id 11155111)
-ETH_TESTNET_RPC=https://sepolia.infura.io/v3/YOUR_KEY
-ETH_CONFIRMATIONS=12
-
-# Exchange rates
-EXCHANGE_RATES_PROVIDER=coingecko
-```
-
-> ⚠️ **Never disable `BTC_TESTNET_VERIFY_SSL` on mainnet nodes.**
+> ⚠️ **Never disable `*_VERIFY_SSL` on mainnet nodes.** Keep RPC credentials in your environment, never in version control.
 
 ---
 
@@ -135,16 +136,18 @@ $payment = app(PaymentManager::class)->createPaymentRequest(
     amountFiat: 100.00,
     fiatCurrency: 'USD',
     options: [
-        'merchant_id'  => 1,
-        'order_id'     => 123,
-        'description'  => 'Order #123',
+        'merchant_id' => 1,
+        'order_id'    => 123,
+        'description' => 'Order #123',
     ]
 );
 
-// $payment->wallet_address  → send crypto here
-// $payment->amount_crypto   → exact amount expected
-// $payment->expires_at      → payment deadline
+// $payment->wallet_address  -> send crypto here
+// $payment->amount_crypto   -> amount expected
+// $payment->expires_at      -> payment deadline
 ```
+
+Other supported `options`: `user_id`, `fee_percentage`, `expires_in_minutes`, `metadata` (array), `payment_method`.
 
 ### Check payment status
 
@@ -152,13 +155,30 @@ $payment = app(PaymentManager::class)->createPaymentRequest(
 app(PaymentManager::class)->checkPaymentStatus($payment);
 ```
 
+Other `PaymentManager` methods: `completePayment($payment)`, `refundPayment($payment, $reason)`.
+
 ---
 
 ## REST API
 
-All endpoints are prefixed with `/api/crypto-payments`.
+All routes are prefixed with `/api/crypto-payments` (see the [authentication warning](#known-limitations)).
 
-### Create a payment
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/payments` | Create a payment (`currency`, `amount`, `fiat_currency` required) |
+| GET | `/payments` | List payments (`merchant_id`, `currency`, `status`, `date_from`, `date_to`, `per_page`) |
+| GET | `/payments/{payment}` | Show a payment |
+| GET | `/payments/{payment}/status` | Refresh and return the status |
+| POST | `/payments/{payment}/refund` | Mark a payment as refunded |
+| GET | `/addresses` | List addresses (`merchant_id`, `currency`, `active`) |
+| GET | `/addresses/{address}` | Show an address |
+| PATCH | `/addresses/{address}/label` | Update an address label |
+| POST | `/addresses/{address}/deactivate` | Deactivate an address |
+| POST | `/webhooks` | Register a webhook endpoint |
+| GET | `/webhooks` | List endpoints (`merchant_id`) |
+| PATCH | `/webhooks/{endpoint}` | Update an endpoint |
+| DELETE | `/webhooks/{endpoint}` | Delete an endpoint |
+| POST | `/webhooks/{endpoint}/test` | Send a test event |
 
 ```http
 POST /api/crypto-payments/payments
@@ -173,17 +193,7 @@ Content-Type: application/json
 }
 ```
 
-### Get payment status
-
-```http
-GET /api/crypto-payments/payments/{id}/status
-```
-
-### List payments
-
-```http
-GET /api/crypto-payments/payments?merchant_id=1&status=pending
-```
+`fiat_currency` accepts `USD`, `EUR` or `GBP`.
 
 ---
 
@@ -203,15 +213,18 @@ Content-Type: application/json
 }
 ```
 
+The response contains a generated `secret` used to sign deliveries.
+
 ### Verify the signature
 
-Webhooks are signed with HMAC-SHA256. Always verify the signature before processing:
+Each delivery carries three headers: `X-Webhook-Signature` (`sha256=<hmac>`), `X-Webhook-Timestamp` (Unix time) and `X-Webhook-Event`. The HMAC-SHA256 is computed over `"{timestamp}.{raw JSON body}"` with the endpoint secret. Verify it on the **raw request body** and reject stale timestamps:
 
 ```php
+$timestamp = $request->header('X-Webhook-Timestamp');
 $signature = $request->header('X-Webhook-Signature');
-$expected  = 'sha256=' . hash_hmac('sha256', json_encode($request->all()), $yourSecret);
+$expected  = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$request->getContent(), $yourSecret);
 
-if (!hash_equals($expected, $signature)) {
+if (! hash_equals($expected, (string) $signature) || abs(time() - (int) $timestamp) > 300) {
     abort(401, 'Invalid signature');
 }
 ```
@@ -226,12 +239,14 @@ if (!hash_equals($expected, $signature)) {
 | `payment_completed` | Payment marked as complete |
 | `payment_expired` | Payment window expired |
 
+`payment_failed` is accepted when registering an endpoint, and `test` is sent by the test route.
+
 ---
 
 ## Artisan Commands
 
 ```bash
-# Generate Bitcoin addresses for a merchant
+# Generate payment addresses (BTC or ETH) for a merchant
 php artisan crypto:generate-addresses BTC --count=10 --merchant-id=1
 ```
 
@@ -239,16 +254,14 @@ php artisan crypto:generate-addresses BTC --count=10 --merchant-id=1
 
 ## Scheduled Jobs
 
-Register the Laravel scheduler in your `routes/console.php` (Laravel 11+) or `app/Console/Kernel.php`:
-
-The package auto-registers the following jobs via `callAfterResolving`:
+The service provider registers these jobs on Laravel's scheduler, so you only need the usual `schedule:run` cron entry:
 
 | Job | Schedule |
 |---|---|
-| `CheckPaymentConfirmations` | Every minute |
+| `CheckPaymentConfirmations` | Every minute (one server) |
 | `RefreshExchangeRates` | Every 5 minutes |
 
-Make sure you have a running queue worker:
+Webhook deliveries are queued, so run a queue worker:
 
 ```bash
 php artisan queue:work
@@ -260,11 +273,13 @@ php artisan queue:work
 
 | Measure | Detail |
 |---|---|
-| Data encryption | AES-256-CBC for sensitive fields |
-| Webhook signing | HMAC-SHA256 (`X-Webhook-Signature` header) |
-| Address validation | Strict regex / RPC validation |
-| SSL verification | Enabled by default; configurable per network |
-| Audit trail | Every status change is logged |
+| Webhook signing | HMAC-SHA256 over `timestamp.body` (`X-Webhook-Signature`, `X-Webhook-Timestamp`) |
+| Address validation | Regex / RPC validation |
+| TLS verification | Enabled by default for RPC calls; configurable per network |
+| Encryption helper | `EncryptionService` (Laravel `Crypt`), not applied automatically |
+| Audit trail | Payment status changes are logged |
+
+See the [Known Limitations](#known-limitations) for what is **not** covered yet. To report a vulnerability, follow [SECURITY.md](SECURITY.md) (contact@doganddev.eu); do not open a public issue.
 
 ---
 
@@ -282,7 +297,8 @@ src/
 │   └── Resources/      # API resources (transformers)
 ├── Jobs/               # Queued jobs
 ├── Models/             # Eloquent models
-└── Services/           # Core business logic
+├── Services/           # Core business logic
+└── Support/            # Math helpers
 ```
 
 ---
@@ -290,27 +306,26 @@ src/
 ## Testing
 
 ```bash
-composer test
-# or
-./vendor/bin/phpunit --no-coverage
+composer install
+composer test          # PHPUnit, in-memory SQLite, no node required
+composer format-check  # Laravel Pint
 ```
 
-The test suite covers:
-- Config file correctness (Sepolia chain_id, SSL defaults)
-- `BitcoinService` SSL toggle + RPC error handling
-- `ServiceProvider` bindings
+The suite (79 tests) covers the configuration, Bitcoin and Ethereum services (RPC and explorer calls faked), `HexMath`, the payment manager, the REST API, webhook delivery and signing, and the service provider. GitHub Actions runs it on PHP 8.2 to 8.4 against Laravel 10, 11 and 12.
 
 ---
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for a full list of changes.
+See [CHANGELOG.md](CHANGELOG.md).
 
----
+## Contributing
 
-## License
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-MIT — see [LICENSE](LICENSE) for details.
+## License and contact
+
+MIT, see [LICENSE](LICENSE). Contact: contact@doganddev.eu
 
 ---
 
@@ -320,94 +335,60 @@ MIT — see [LICENSE](LICENSE) for details.
 
 > 🇬🇧 [English documentation above](#crypto-payments-for-laravel)
 
+**Bêta, pas encore sur Packagist.** Lisez les limitations avant toute utilisation avec de vrais fonds.
+
 ## Prérequis
 
 | Dépendance | Version |
 |---|---|
 | PHP | ^8.2 |
 | Laravel | ^10.0 \| ^11.0 \| ^12.0 |
-| Bitcoin Core | ^25.0 (RPC activé) |
-| Nœud Ethereum | Tout nœud JSON-RPC compatible (Geth, Infura…) |
-
----
+| Bitcoin Core | RPC activé |
+| Nœud Ethereum | Nœud JSON-RPC (ex. Geth) ; la génération d'adresses utilise `personal_newAccount` |
+| Explorateurs | API compatible Esplora (Bitcoin) et Etherscan (Ethereum) pour détecter les transactions entrantes |
 
 ## Fonctionnalités
 
-- ✅ Support Bitcoin & Ethereum (testnet + mainnet)
-- ✅ Génération d'une adresse unique par paiement
-- ✅ Suivi des confirmations blockchain
-- ✅ Conversion fiat ↔ crypto via CoinGecko
-- ✅ Système de webhooks signé (HMAC-SHA256) avec retry automatique
-- ✅ Chiffrement AES-256 des données sensibles
-- ✅ Audit trail complet
-- ✅ API REST (création / vérification / liste)
-- ✅ Jobs planifiés pour la vérification automatique
-
----
+- Support Bitcoin et Ethereum (testnet et mainnet)
+- Une adresse par demande de paiement
+- Détection des transactions entrantes via l'explorateur configuré
+- Suivi des confirmations blockchain
+- Conversion fiat vers crypto via CoinGecko
+- Webhooks signés (HMAC-SHA256 avec horodatage) avec retry automatique
+- Historique d'audit des changements de statut
+- API REST (paiements, adresses, endpoints de webhook)
 
 ## Limitations connues
 
 > **À lire avant une mise en production.**
 
-| Fonctionnalité | État | Notes |
-|---|---|---|
-| Détection des transactions entrantes | ⚠️ Stub | `findTransaction()` retourne toujours `null`. Intégrez un indexeur blockchain ([Blockstream API](https://blockstream.info/api/), [Etherscan](https://etherscan.io/apis)) avant la production. |
-| Envoi de transactions ETH | ⚠️ Non implémenté | `EthereumService::sendTransaction()` lève une exception intentionnellement — la gestion des clés privées est à la charge du consommateur. |
-| Adresses hiérarchiques BIP44 | ⚠️ Partiel | Se rabat sur `getnewaddress` — ajoutez [bitwasp/bitcoin](https://github.com/Bit-Wasp/bitcoin-php) pour le BIP44/49/84 complet. |
-| `sc0vu/web3.php` (bibliothèque Ethereum) | ⚠️ Optionnel | Déplacé dans `suggest` — non maintenu, requiert `php ^7.1` sur Packagist. Installez manuellement : `composer require sc0vu/web3.php:dev-master`. Sans lui, la validation regex ETH fonctionne mais les appels RPC lèvent une exception. |
-| Couverture de tests | ⚠️ Partielle | Tests unitaires couvrant la config, `BitcoinService` et le service provider. Les tests d'intégration (nœud réel) sont hors périmètre. |
-
----
+- Les routes REST `/api/crypto-payments/*` sont enregistrées **sans authentification** ni cloisonnement par marchand : ne les exposez pas telles quelles.
+- Les URL de webhook ne sont pas filtrées (pas de protection SSRF) et le secret de signature est renvoyé en clair par l'API.
+- `EncryptionService` est un simple utilitaire : il ne chiffre pas automatiquement les colonnes stockées.
+- La correspondance des paiements est basique (adresse et montant) : pas de gestion des paiements partiels ou excédentaires.
+- Ethereum : les clés sont gérées par le nœud (`personal_newAccount`, `eth_sendTransaction`).
+- Adresses BIP44 : repli sur `getnewaddress`.
+- Tests : 79 tests avec appels HTTP simulés, pas de test contre un vrai nœud.
 
 ## Installation
 
-```bash
-composer require martin-lechene/crypto-payments
-```
-
-### Publier la config & les migrations
+Le package n'est pas encore publié sur Packagist :
 
 ```bash
+composer config repositories.crypto-payments vcs https://github.com/martin-lechene/crypto-payment-laravel
+composer require martin-lechene/crypto-payments:dev-main
 php artisan vendor:publish --tag=crypto-payments-config
 php artisan vendor:publish --tag=crypto-payments-migrations
 php artisan migrate
 ```
 
----
-
 ## Configuration
 
-Copiez `.env.example` dans `.env` :
+Voir le tableau des variables dans la section Configuration ci-dessus et le fichier [`.env.example`](.env.example).
 
-```bash
-cp vendor/martin-lechene/crypto-payments/.env.example .env
-```
-
-### Variables d'environnement principales
-
-```env
-CRYPTO_NETWORK=testnet
-CRYPTO_DEFAULT_CURRENCY=BTC
-
-BTC_TESTNET_RPC=http://localhost:18332
-BTC_TESTNET_USER=bitcoin
-BTC_TESTNET_PASSWORD=secret
-BTC_TESTNET_VERIFY_SSL=true
-BTC_CONFIRMATIONS=3
-
-ETH_TESTNET_RPC=https://sepolia.infura.io/v3/YOUR_KEY
-ETH_CONFIRMATIONS=12
-
-EXCHANGE_RATES_PROVIDER=coingecko
-```
-
-> ⚠️ **Ne désactivez jamais `BTC_TESTNET_VERIFY_SSL` sur un nœud mainnet.**
-
----
+> ⚠️ **Ne désactivez jamais `*_VERIFY_SSL` sur un nœud mainnet.**
 
 ## Utilisation
-
-### Créer un paiement
 
 ```php
 use MartinLechene\CryptoPayments\Services\PaymentManager;
@@ -422,17 +403,12 @@ $payment = app(PaymentManager::class)->createPaymentRequest(
         'description' => 'Commande #123',
     ]
 );
-```
 
-### Vérifier le statut
-
-```php
 app(PaymentManager::class)->checkPaymentStatus($payment);
 ```
 
----
+Vérification de signature des webhooks : voir « Verify the signature » ci-dessus (HMAC-SHA256 sur `timestamp.corps_brut`).
 
 ## Support
 
-Pour toute question ou rapport de bug, ouvrez une [issue GitHub](https://github.com/martin-lechene/crypto-payment-laravel/issues).
-
+Pour une question ou un bug, ouvrez une [issue GitHub](https://github.com/martin-lechene/crypto-payment-laravel/issues). Pour une faille de sécurité : [SECURITY.md](SECURITY.md) ou contact@doganddev.eu.

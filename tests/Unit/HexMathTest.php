@@ -88,7 +88,7 @@ class HexMathTest extends TestCase
 
     public function test_divise_par_un_entier(): void
     {
-            [$quotient, $remainder] = HexMath::divideByInt('21000', 16);
+        [$quotient, $remainder] = HexMath::divideByInt('21000', 16);
         $this->assertSame('1312', $quotient);
         $this->assertSame(8, $remainder);
     }
