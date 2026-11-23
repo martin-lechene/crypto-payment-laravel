@@ -2,15 +2,13 @@
 
 namespace MartinLechene\CryptoPayments\Tests\Unit;
 
-use MartinLechene\CryptoPayments\Tests\PackageTestCase;
-
-use MartinLechene\CryptoPayments\CryptoPaymentsServiceProvider;
 use MartinLechene\CryptoPayments\Services\BitcoinService;
+use MartinLechene\CryptoPayments\Services\EncryptionService;
 use MartinLechene\CryptoPayments\Services\EthereumService;
 use MartinLechene\CryptoPayments\Services\ExchangeRateService;
 use MartinLechene\CryptoPayments\Services\PaymentManager;
 use MartinLechene\CryptoPayments\Services\WebhookManager;
-use MartinLechene\CryptoPayments\Services\EncryptionService;
+use MartinLechene\CryptoPayments\Tests\PackageTestCase;
 
 /**
  * Tests that the ServiceProvider correctly binds all services into the container.

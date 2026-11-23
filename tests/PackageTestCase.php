@@ -2,8 +2,8 @@
 
 namespace MartinLechene\CryptoPayments\Tests;
 
-use Orchestra\Testbench\TestCase as BaseTestCase;
 use MartinLechene\CryptoPayments\CryptoPaymentsServiceProvider;
+use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class PackageTestCase extends BaseTestCase
 {
@@ -16,7 +16,7 @@ abstract class PackageTestCase extends BaseTestCase
     {
         $app['config']->set('database.default', 'testing');
         $app['config']->set('database.connections.testing', [
-            'driver'   => 'sqlite',
+            'driver' => 'sqlite',
             'database' => ':memory:',
         ]);
         $app['config']->set('app.key', 'base64:2fl+Ktvkfl+Fuz4Qp/A75G2RTiWVA/ZoKZvp6fiiM10=');

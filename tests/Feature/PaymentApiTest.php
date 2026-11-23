@@ -40,28 +40,28 @@ class PaymentApiTest extends TestCase
 {
     public function test_cree_puis_consulte_un_paiement_via_l_api(): void
     {
-            apiFakes();
+        apiFakes();
 
-            $response = $this->postJson('/api/crypto-payments/payments', [
-                'currency' => 'BTC',
-                'amount' => 30,
-                'fiat_currency' => 'USD',
-                'order_id' => 10,
-                'merchant_id' => 3,
-            ]);
+        $response = $this->postJson('/api/crypto-payments/payments', [
+            'currency' => 'BTC',
+            'amount' => 30,
+            'fiat_currency' => 'USD',
+            'order_id' => 10,
+            'merchant_id' => 3,
+        ]);
 
-            $response->assertStatus(201)->assertJsonPath('success', true);
-            $response->assertJsonPath('data.currency', 'BTC');
-            $response->assertJsonPath('data.status', 'pending');
-            $response->assertJsonPath('data.wallet_address', API_ADDRESS);
+        $response->assertStatus(201)->assertJsonPath('success', true);
+        $response->assertJsonPath('data.currency', 'BTC');
+        $response->assertJsonPath('data.status', 'pending');
+        $response->assertJsonPath('data.wallet_address', API_ADDRESS);
 
-            $id = $response->json('data.id');
+        $id = $response->json('data.id');
 
         $this->assertNotNull(CryptoPayment::find($id));
 
-            $this->getJson("/api/crypto-payments/payments/{$id}")
-                ->assertOk()
-                ->assertJsonPath('data.id', $id);
+        $this->getJson("/api/crypto-payments/payments/{$id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $id);
     }
 
     public function test_liste_et_filtre_les_paiements(): void
@@ -93,32 +93,32 @@ class PaymentApiTest extends TestCase
 
     public function test_verifie_le_statut_et_rembourse_un_paiement(): void
     {
-            apiFakes();
+        apiFakes();
 
-            $payment = CryptoPayment::create([
-                'currency' => 'BTC',
-                'amount_crypto' => 0.0005,
-                'amount_fiat' => 30,
-                'fiat_currency' => 'USD',
-                'wallet_address' => API_ADDRESS,
-                'status' => CryptoPayment::STATUS_PENDING,
-                'confirmations' => 0,
-                'required_confirmations' => 3,
-                'exchange_rate' => 60000,
-                'platform_fee' => 0,
-                'fee_percentage' => 0,
-                'reference_code' => 'B-0001',
-            ]);
+        $payment = CryptoPayment::create([
+            'currency' => 'BTC',
+            'amount_crypto' => 0.0005,
+            'amount_fiat' => 30,
+            'fiat_currency' => 'USD',
+            'wallet_address' => API_ADDRESS,
+            'status' => CryptoPayment::STATUS_PENDING,
+            'confirmations' => 0,
+            'required_confirmations' => 3,
+            'exchange_rate' => 60000,
+            'platform_fee' => 0,
+            'fee_percentage' => 0,
+            'reference_code' => 'B-0001',
+        ]);
 
-            $this->getJson("/api/crypto-payments/payments/{$payment->id}/status")
-                ->assertOk()
-                ->assertJsonPath('data.status', 'pending');
+        $this->getJson("/api/crypto-payments/payments/{$payment->id}/status")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'pending');
 
-            $this->postJson("/api/crypto-payments/payments/{$payment->id}/refund", [
-                'reason' => 'commande annulée',
-            ])
-                ->assertOk()
-                ->assertJsonPath('success', true);
+        $this->postJson("/api/crypto-payments/payments/{$payment->id}/refund", [
+            'reason' => 'commande annulée',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
 
         $this->assertSame(CryptoPayment::STATUS_REFUNDED, $payment->refresh()->status);
     }
